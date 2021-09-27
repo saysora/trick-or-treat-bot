@@ -417,12 +417,16 @@ client.on("interactionCreate", async (cmd) => {
       ["treats", "desc"],
     ]);
 
-    const page = cmd.options.getInteger("page")
+    let page = cmd.options.getInteger("page")
       ? cmd.options.getInteger("page")
       : 1;
 
     let boardpage = paginate(sugardaddies, 10, page);
     let pages = sugardaddies.length > 10 ? sugardaddies.length / 10 : 1;
+
+    if (page > pages + 1 || page < 1) {
+      page = 1;
+    }
 
     if (sugardaddies.length % 10) {
       pages = Math.ceil(pages);
