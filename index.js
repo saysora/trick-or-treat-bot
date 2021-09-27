@@ -49,6 +49,7 @@ const singularwin = [
   "You grab your trick or treat bag and realize there's a chocolate bar left inside.",
   "You notice a floating cube with a quesiton mark on it. You hit it and out pops a single chocolate coin!",
   "You're cleaning out your old highschool backpack, between some binders you find a pack of Nerds.",
+  "You did not succumb to the bad luck. You get one candy.",
 ];
 
 const wins = [
@@ -83,6 +84,9 @@ const criticalwin = [
   "You take a trip to a haunted house where you scare the pants off your friends. They drop <AMOUNT>. More for you.",
   "Your boss decides to give you your entire paycheck in candy...? You gain <AMOUNT>. Maybe look for a new line of work.",
   "Some dumb bullies try to jump you for your candy. Luckily you've been taking taekwondo. You get <AMOUNT> candy from their bags.",
+  "You find a hidden door behind your grandfather's old wooden closet. Opening the door, it's a not chilly inside but you find a stashed <AMOUNT>.",
+  "You and your friend stumble upon a party where they all love your costumes, they award you winners of the party and give you <AMOUNT>! Look at you go.",
+  "Your friends hot mom loves your costume and slips you <AMOUNT>. Maybe keep that first part to yourself.",
 ];
 
 // LOSSES
@@ -122,6 +126,7 @@ const falsewins = [
   "You were out trick or treating when your dentist sees you. He holds something in his hand but it turns out to be a roll of dental floss.",
   "You trick or treated at a house that **only** gives out healthy snacks. Drats.",
   "Your friend is allergic to peanuts so you decide to trade their Snickers for your Tootsie Pop.",
+  "The house you trick or treated at has a 'take one please' candy basket! ... But it's empty. Damn greey goblins.",
 ];
 
 // LOSE ALL CANDY
@@ -144,6 +149,7 @@ const YOULOSTTHEGAME = [
   "This year you're ready. No matter what they do you're gonna make it safely home with your bag of candy. This time you have all the right gear. You put on football pads under your Robin Hood costume, complete with a mask. Armor and a disguise.. If they don't know it's you under the mask.. they cant prey on you. Protection.. Check. You strap on your super soaker pistols filled with vinegar and tie your cabbage juice water balloons to your belt. They only like sweets.. and they hate vegetables. One spritz in the eyes and they should scatter. Weaponry.. Check. Finally, we need backup. You get the harness and the leash for Killer, your new Rottweiler. The tiny creeps don't stand a chance. Confident, and ready for action, you exit your house. You keep a lookout, but so far no signs of the enemy... 2 blocks of candy down.. Still the coast is clear. Dare you hope that this year they might have chosen someone else? As the night progresses with no incident, you relax and start to enjoy yourself. Your bag is filled nicely but you're getting tired. It's safe to say you can finally enjoy your Halloween the way it was meant to be enjoyed.. Time to go home and dig into your prize. You climb your porch steps and put the keys into the lock. OW! You look down.. A fork! How did they find home base? You reach for your pistol but it's already too late. They're everywhere. You hear the clicking of a hundred tiny wooden legs as the garden gnomes surround you. You call to Killer for help, but the dog just licks his balls. They beat you senseless and take your candy.\n**Serves you right.**",
   "You wake up in an unfamiliar room inside a bathtub. As you begin to shift your foot catches on a drain plug, unplugging it. The water starts to drain, and a small light flickers on. The room itself is pitch black, but you still just barely make out a key and another person in the dark. As you lift yourself out of the tub and fall onto the floor,  you cough and gasp from the shock of it all. You manage to get to your feet, but as you move forward you realize your ankle is chained to something. You feel your way in the dark to a pipe in the corner. You then reach down to pulling at the chain that is attached to it. you cry out, frantic, frightened, and a bit hysterical:  Help! Someone help me! (you stop when you hear a loud dragging sound somewhere in the room. You look out into the darkness and calls out.) Is someone there? (You turn back to the corner where you are chained, and say in a slightly softer but still panicked voice) Shit, Im probably dead. Suddenly, from out within the darkness comes a mans voice:\n**I want to play a game.**",
   "It's been a great year. The war looks like its finally coming to an end and the troops are coming home. Everyone is full of hope, and in celebration, stocking up on candy. As I'm putting on my survivor costume makeup, I analyze it with a critical eye. Is this too Mad Max or is it more like The Walking Dead. I paint on some more dirt stains and get out my fake machete. Machete's work for every doomsday right? I stroll out the house with my dirty duffel bag and head to the best neighborhood in town to get the good stuff. As I strut from house to house, I make a big show of squaring off with every alien, vampire, or fellow survivor costume I see. Most people are fun and play along. My bag fills up, and so does my mood. As I'm heading home I notice some people looking up at the sky and talking fearfully. What's that? Bright streaks are zooming.. This way. A family behind me calls to me. \"Get inside quick! We have a shelter!\" I was about to ask what they were talking about, when the father grabs me by the arm and drags me inside. I'm quickly ushered to the basement. I start to object and he slams the lid shut and locks it. \"Hey, you can't ju....\" BOOM. The bunker shakes and dust falls from the ceiling. A radio in the back crackles and I hear. \"They lied. They promised a cease fire and what we got were nu...\". The radio fizzles out. Nukes?! We all look at each other in horror. The family realizes they're about to share their rations with a stranger. I realize I dropped my bag of candy when the father grabbed me.\n**It's the end, but at least I'm dressed for the part.**",
+  `Your friend Marcus Halberstam offers drinks at his place after a long night of drinking at the bar and he wont take no for an answer.\n"Come on, you dumb son of a bitch."\nHe says as he helps you into your jacket. "I've got a preview of the Barneys catalogue and a bottle of Absolut waiting for us."\nYou get to the apartment and notice the living room floor has been meticulously covered with newspaper. You slump drunkenly in a white Eames chair, a glass in hand as Halberstam is looking through his CDs.\n"You like Huey Lewis and the News?" he asks.\n"They're okay." you respond.\n"Their early work was a little too New Wave for my taste. But then Sports came out in 1983, I think they really came into their own, commercially and artistically." Halberstam states as he walks to his bathroom.\n"The whole album has a clear, crisp sound and a new sheen of consummate professionalism that gives the songs a big boost." Halberstam comes back out and walks to the foyer.\n"He's been compared to Elvis Costello but I think Huey has a more bitter, cynical sense of humor."\nYou absent-mindedly leaf through the Barneys catalogue only half listening.\n"Hey, Halberstam?"\n"Yes?"\n"Why are there copies of the Style section all over the place? Do you have a dog? A chow or something?"\n"No."\n"Is that a raincoat?"\n"Yes, it is."\nHe moves to the CD player. and takes a CD out of its case and slides it in the machine. Then states "In 87 Huey released this, Fore!, their most accomplished album. I think their undisputed masterpiece is "HiP To Be Square," a song so catchy that most people probably don't listen to the lyrics. But they should because it's not just about the pleasures of conformity and the importance of trends. It's also a personal statement about the band itself."\nHe walked behind you as he spoke.\n"HEY PAUL!"\nAs you turn around to question him since, well your name isn't Paul, you are greeted with **AN AXE TO THE FACE.**`,
 ];
 
 /* Setup Slash Commands */
@@ -198,6 +204,51 @@ client.on("messageCreate", async (msg) => {
     return await msg.channel
       .send(`Singular Win: ${singularwin.length}\nNormal Win: ${wins.length}\nCritical Win: ${criticalwin.length}\nLosses: ${losses.length}\nFalse Wins: ${falsewins.length}\nTotal Fails: ${totalfail.length}\nYou Lose: ${YOULOSTTHEGAME.length}
     `);
+  }
+  if (msg.content.startsWith("!test")) {
+    const args = msg.content.split(" ");
+    args.shift();
+
+    let category;
+    switch (args[0]) {
+      case "singularwin":
+        category = singularwin;
+        break;
+      case "wins":
+        category = wins;
+        break;
+      case "critwin":
+        category = criticalwin;
+        break;
+      case "losses":
+        category = losses;
+        break;
+      case "totalfail":
+        category = totalfail;
+        break;
+      case "lose":
+        category = YOULOSTTHEGAME;
+        break;
+      default:
+        category = singularwin;
+        break;
+    }
+
+    let num = args[1];
+
+    switch (args[1]) {
+      case "first":
+        num = 0;
+        break;
+      case "last":
+        num = category.length - 1;
+        break;
+      default:
+        break;
+    }
+
+    msg.channel.send(`${category[num]}`);
+    return;
   }
 });
 
