@@ -1,8 +1,15 @@
 require("dotenv").config();
 
-const { REST } = require("@discordjs/rest");
+const { REST, DiscordAPIError } = require("@discordjs/rest");
 const { Routes } = require("discord-api-types/v9");
-const { Client, Intents, Message } = require("discord.js");
+const {
+  Client,
+  Intents,
+  Message,
+  MessageEmbed,
+  MessageActionRow,
+  MessageButton,
+} = require("discord.js");
 const TrickorTreat = require("./classes/TrickorTreat");
 const client = new Client({
   intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
@@ -14,6 +21,16 @@ const Database = require("./classes/Database");
 function randomNumBet(min, max) {
   return Math.floor(Math.random() * (max - min + 1) + min);
 }
+
+const paginate = (array, pagesize, pagenum) => {
+  return array.slice((pagenum - 1) * pagesize, pagenum * pagesize);
+};
+
+/* 
+/// TODO
+/
+/ + Check for if command is 2 hours later than last trigger
+*/
 
 // WINS
 
@@ -27,7 +44,11 @@ const singularwin = [
   "Your FAVORITE teacher sneaks you an extra piece of candy for all those good boy points you've been racking up.",
   "Sweet! Half chewed gum on the sidewalk and NO ANTS!!",
   "While cleaning your room before you go trick or treating, you find a unexpired Reeses under your bed.",
-  "",
+  "While trick or treating you spot a single gumdrop on a trash can under the moonlight.",
+  "You try to reach the top of the kitchen cabinet, feeling a crinkled wrappe ryou stand on your toes to pull down a dusty Butterfinger.",
+  "You grab your trick or treat bag and realize there's a chocolate bar left inside.",
+  "You notice a floating cube with a quesiton mark on it. You hit it and out pops a single chocolate coin!",
+  "You're cleaning out your old highschool backpack, between some binders you find a pack of Nerds.",
 ];
 
 const wins = [
@@ -42,6 +63,12 @@ const wins = [
   "You give a Shinigami an apple. They give you <AMOUNT>.",
   "You visit a graveyard with your friends and meet a friendly ghost! He offers you <AMOUNT> candy to gtfo.",
   "Your best friend is allergic to peanuts. They give you <AMOUNT>",
+  "You wish your oddly pale history teacher a Happy Halloween. They smile for the first time, showing fangs and give you <AMOUNT>.",
+  "You abuse the front door physics and clip into a neighbors house, grabbing <AMOUNT> before running away.",
+  "You didn't win the costume contest. At least you got a participation medal and <AMOUNT>.",
+  "You pass a mouse hole, there's a plate of cheese adjacent to it. Seeing this fills you with determination, and <AMOUNT>.",
+  "You unmask captain cutler and immediately turn him into the police. They give you <AMOUNT> as a reward.",
+  "You help stop a troll in main from making the Convo weird! The grateful mods give you <AMOUNT>.",
 ];
 
 const criticalwin = [
@@ -51,6 +78,11 @@ const criticalwin = [
   "You suddenly remember where last year's candy stash is hidden! You gain <AMOUNT>.",
   "Nobody wants to walk down your long ass driveway so mom lets you keep all of the candy. You gain <AMOUNT>.",
   "Your mom gives you all the left overs from the candy bowl. you gain <AMOUNT>.",
+  "You found a treasure map. You follow it and dig up a chest on Candy Island! You gain <AMOUNT>.",
+  "You finally got that triple combo during the Candy Crush Spooktacular event. You gain <AMOUNT>.",
+  "You take a trip to a haunted house where you scare the pants off your friends. They drop <AMOUNT>. More for you.",
+  "Your boss decides to give you your entire paycheck in candy...? You gain <AMOUNT>. Maybe look for a new line of work.",
+  "Some dumb bullies try to jump you for your candy. Luckily you've been taking taekwondo. You get <AMOUNT> candy from their bags.",
 ];
 
 // LOSSES
@@ -71,6 +103,11 @@ const losses = [
   "You were horni in main-chat. You lose <AMOUNT>.",
   "Your mom found the Only Fans credit card transaction. You lose <AMOUNT>.",
   'You clicked a "free candy giveaway" link in your DMs. You lose <AMOUNT>.',
+  "You left your door open for a moment and your brother runs in. He takes <AMOUNT>.",
+  "A seagull swoops down RIGHT as you try to eat some candy. You lose <AMOUNT>.",
+  "Your highschool bully attempts to steal your lunch money, but you only have candy! You lose <AMOUNT>.",
+  "You got caught TPing Old Man Jenkins house. Your parents make you give <AMOUNT> to your sibling.",
+  "The monsters under your bed need something to eat too. Better not be you. You lose <AMOUNT>.",
 ];
 
 // FALSE POSITIVES
@@ -81,6 +118,10 @@ const falsewins = [
   "You walk up to a house and try to ring the doorbell. They turn their lights off.",
   "As you are walking between the houses you see a glimmer, you reach down expecting a candy bar but as you pull it up it's but only the wrapper.",
   "You got a rock.",
+  "You found a rainbow and run to follow it, but there were no skittles only a pot of gold. :(",
+  "You were out trick or treating when your dentist sees you. He holds something in his hand but it turns out to be a roll of dental floss.",
+  "You trick or treated at a house that **only** gives out healthy snacks. Drats.",
+  "Your friend is allergic to peanuts so you decide to trade their Snickers for your Tootsie Pop.",
 ];
 
 // LOSE ALL CANDY
@@ -91,6 +132,9 @@ const totalfail = [
   "You stumble across people dressed as Oregon Trail Settlers. You DIE of dysentery AND lose ALL your candy.",
   "You got caught sticking bologna to people's cars. You lose ALL of your candy.",
   "You play with an oujia board and get possessed... the candy is NO LONGER yours.",
+  "You received a sentient gummy bear and realize candy have feelings too. You decide to set ALL your candy free in the forest. How sweet of you.",
+  "You wanted to check out this clown everyone was hyping up in the sewer grates. You slipped when you tried to take a peek and dropped ALL of your candy.",
+  "Some kid robs you at gunpoint for EVERYTHING in your bag... where did he even get that???",
 ];
 
 // ABSOLUTE LOSS
@@ -117,6 +161,17 @@ const commands = [
     name: "bag",
     description: "Check how much candy you have.",
     // defaultPermission: false,
+  },
+  {
+    name: "sugar-daddies",
+    description: "Find out who has the most candy.",
+    options: [
+      {
+        name: "page",
+        type: "INTEGER",
+        description: "Page number for the sugar daddy list",
+      },
+    ],
   },
 ];
 
@@ -165,7 +220,6 @@ client.on("interactionCreate", async (cmd) => {
 
   if (cmd.commandName == "trick-or-treat") {
     const chance = Math.floor(Math.random() * 1000);
-    console.log(chance);
 
     const you = await TrickorTreat.getPlayer(cmd.member.user.id);
 
@@ -173,6 +227,10 @@ client.on("interactionCreate", async (cmd) => {
 
     if (you.lost == true) {
       // Add message
+      await cmd.reply({
+        content: "You are **DEAD** and cannot trick or treat. :skull:",
+        ephemeral: true,
+      });
       return;
     }
 
@@ -273,7 +331,10 @@ client.on("interactionCreate", async (cmd) => {
     const player = await TrickorTreat.getPlayer(cmd.member.user.id);
 
     if (!player) {
-      cmd.reply("You must first go out trick or treating...");
+      await cmd.reply({
+        content: "You must first go out trick or treating...",
+        ephemeral: true,
+      });
       return;
     }
 
@@ -296,7 +357,53 @@ client.on("interactionCreate", async (cmd) => {
       timestamp: new Date(),
     };
     embed;
-    return await cmd.reply({ embeds: [embed] });
+    return await cmd.reply({ embeds: [embed], ephemeral: true });
+  }
+
+  if (cmd.commandName == "sugar-daddies") {
+    /* I hate this code below for variable names. God forgive me. :') */
+    const sugardaddies = await TrickorTreat.getPlayers({ lost: false }, [
+      ["treats", "desc"],
+    ]);
+
+    const page = cmd.options.getInteger("page")
+      ? cmd.options.getInteger("page")
+      : 1;
+
+    let boardpage = paginate(sugardaddies, 10, page);
+    let pages = sugardaddies.length > 10 ? sugardaddies.length / 10 : 1;
+
+    if (sugardaddies.length % 10) {
+      pages = Math.ceil(pages);
+    }
+
+    const index = sugardaddies.findIndex(
+      (daddy) => daddy.id == cmd.member.user.id
+    );
+
+    const embed = {
+      title: ":jack_o_lantern: Sugar Daddies :jack_o_lantern:",
+      color: 0xcc5500,
+      author: {
+        name: client.user.username,
+        icon_url: client.user.avatarURL(),
+      },
+      description: "Find out who the candy connoisseurs are.\n\n",
+      footer: {
+        text: `${page}/${pages} • You are ${
+          index >= 0 ? "#" + (index + 1) + "." : "💀"
+        }`,
+      },
+    };
+
+    boardpage.forEach((daddy, index) => {
+      var betterindex = page > 1 ? index + 10 * (page - 1) + 1 : index + 1;
+      embed.description += `**${betterindex}.** - <@${daddy.id}> - ${
+        daddy.lost == false ? daddy.treats + " :candy:" : ":skull:"
+      }\n`;
+    });
+
+    cmd.reply({ embeds: [embed] });
   }
 });
 

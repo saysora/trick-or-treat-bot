@@ -3,7 +3,7 @@ const Player = require("../db/Player");
 // Get Moment JS soonish
 
 class TrickorTreat {
-  static async addPlayer(id, guild) {
+  static async addPlayer(id, guild, treats = 0) {
     // if (this.players.find((p) => p.id == id)) return;
 
     const player = await Player.findOne({ id: id });
@@ -14,7 +14,7 @@ class TrickorTreat {
       id: id,
       guild: guild,
       tricks: 0,
-      treats: 0,
+      treats: treats,
       attempts: 0,
       lost: false,
       latestattempt: null,
@@ -33,8 +33,8 @@ class TrickorTreat {
     return player;
   }
 
-  static async getPlayers() {
-    return await Player.find();
+  static async getPlayers(filters = {}, sorts = []) {
+    return await Player.find(filters).sort([...sorts]);
   }
 
   static async removePlayer(id) {
