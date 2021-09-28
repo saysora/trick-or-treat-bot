@@ -51,6 +51,9 @@ const singularwin = [
   "You did not succumb to the bad luck. You get one candy.",
   "You get a lollipop for good behavior!",
   "You survive jigsaws trap and come home with a new will to live. He leaves you a piece of candy on your pillow as a reward.",
+  "Your teacher hands out a piece of candy to the entire class for halloween.",
+  "Your dog brings you a candy covered in slobber. He sure loves you.",
+  "Your friend opens a bag of M&Ms in front of you. You stare at him until he hands you a single M&M.",
 ];
 
 const wins = [
@@ -74,6 +77,11 @@ const wins = [
   "While trick or treating at your science teachers house, he teaches you how to make your own candy! You gain <AMOUNT>.",
   "You meet up at your friends house to go trick or treating together. Their mom gives you <AMOUNT> candy to start the night.",
   "You and your friends visit that spooky house at the end of the street. You find <AMOUNT> of candy left by other scared kids.",
+  "There was a hole in someone else's trick or treat bag. You pick up <AMOUNT> scattered on the ground.",
+  "The little kids are so terrified of your costume that they drop <AMOUNT>. More for you.",
+  "Doc appears before you in the DeLorean from Back to the Future. He throws you a bag with <AMOUNT> in it.",
+  "You spammed the Trickster too hard and it got confused. It puts an extra <AMOUNT> in your bag.",
+  "Someone comes up to you and compliments your well-timed doot meme. They also give you <AMOUNT>.",
 ];
 
 const criticalwin = [
@@ -96,6 +104,10 @@ const criticalwin = [
   "You were one of the few survivors of camp crystal lake. The police give you <AMOUNT> of candy to never speak of it again.",
   "You raid area 51 with a hundred other nerds but you're the only one who makes it inside. You didn't see any aliens but you find <AMOUNT>.",
   "Your classmates thought it would be funny to dump pigs blood on you during your Prom Queen acceptance speech. You didn’t think it was very funny and take <AMOUNT> from them.",
+  "You follow some drunk old man through a green portal, it takes you to a world of candy! You grab <AMOUNT> before going back through the portal.",
+  "You look up and see a shooting star. You call into the heavens that you could use a wish right now. <AMOUNT> falls from the sky in response.",
+  'You just saw Joe Biden fall down a flight of stairs. You help him up and he writes you a check for <AMOUNT>. "Thank you, son."',
+  "You found all 8 of slendermans pages! You gain <AMOUNT> and survive... for now.",
 ];
 
 // LOSSES
@@ -125,6 +137,11 @@ const losses = [
   "You forgot the chant and a blue-masked fox swipes <AMOUNT> from you.  Damn it Swiper.",
   "A blue hedgehog speeds through the neighborhood pick pocketing <AMOUNT> and knocking you over.",
   "Your mom misheard your costume request and got you a rat costume instead of a Batman costume. The neighborhood rats thinking you are their king swarm you and take <AMOUNT>.",
+  "A troll comes into main and yoinks <AMOUNT> with their candy grabber.",
+  "A bat flies in your hair! You drop <AMOUNT> in your panic to get it out!",
+  "Your cat knocks your drink onto <AMOUNT>. They are unsalvageable.",
+  "You get into a fight on your way over to your friends house. Luckily they only take <AMOUNT> and not your whole bag.",
+  "After clicking on a Nitro Giveaway link, your computer comes to life and steals <AMOUNT> from your bag. Sucks to suck.",
 ];
 
 // FALSE POSITIVES
@@ -141,6 +158,10 @@ const falsewins = [
   "Your friend is allergic to peanuts so you decide to trade their Snickers for your Tootsie Pop.",
   "The house you trick or treated at has a 'take one please' candy basket! ... But it's empty. Damn greedy goblins.",
   "You go trick or treating at Mystery Inc house. Shaggy and Scooby give you a Scooby snack since they ate all the candy before you got there.",
+  "Grandma forgot her glasses and tripped while walking to the door. You get no candy... Oh and poor Grandma.",
+  'You knock on the door, a woman opens up the door but you hear a few children laughing and playing in the background. You lean to the side and see behind her an entire family enjoying dinner together. The woman smiles and says "Would you like to join us for dinner?" They didn\'t have any candy to give you.',
+  "You walk up to a decrepit house to get some candy. The basket on the porch is empty so you knock on the door. Behind you there are a bunch of men dressed up as police officers. Their costumes are very realistic. When the door opens, the police arrest the man. The worst part is you got no candy.",
+  "Your friend invites you over to play Candyland. Unfortunately the board is not made of candy like you thought. Talk about false advertising.",
 ];
 
 // LOSE ALL CANDY
@@ -156,7 +177,13 @@ const totalfail = [
   "Some kid robs you at gunpoint for EVERYTHING in your bag... where did he even get that???",
   "A gang in a funky van foil your spoopy halloween plans. They unmask you and take ALL your loot. You would've gotten away with it too if out weren't for those pesky kids.",
   "Your friends find out you’ve been plotting to steal their candy. They take ALL YOUR CANDY and their friendship along with it. How Sad.",
-  "You hear a sudden **VWOOP** behind you. As soon as you turn ",
+  "You hear a sudden **VWOOP** behind you. As soon as you turn to see what it is, an ENDERMAN makes off with all your candy! Did't they only like grass blocks?",
+  "Your sibling gets upset that you won't trade candy with them. They throw your ENTIRE bag into the street where it is run over by a car. Talk about timing.",
+  "Your sibling takes and wastes ALL of your Halloween candy JUST to get Tik-Tok famous. UGH!",
+  "A witch steals ALL of your candy to refurnish her house. At least she didn't eat you.",
+  "Your mom was right too much candy does rot your teeth. You no longer can eat ANY of your candy after that root canal.",
+  "You give up all your candy to get your soul back from a demon. Why you made that deal in the first place, nobody knows.",
+  "On your way home you stumble across a note. You continue to find notes along your journey home.  You only find six before reaching your destination. Slenderman is not pleased by this and takes ALL your candy.",
 ];
 
 // ABSOLUTE LOSS
@@ -167,6 +194,10 @@ const YOULOSTTHEGAME = [
   "You wake up in an unfamiliar room inside a bathtub. As you begin to shift your foot catches on a drain plug, unplugging it. The water starts to drain, and a small light flickers on. The room itself is pitch black, but you still just barely make out a key and another person in the dark. As you lift yourself out of the tub and fall onto the floor,  you cough and gasp from the shock of it all. You manage to get to your feet, but as you move forward you realize your ankle is chained to something. You feel your way in the dark to a pipe in the corner. You then reach down to pulling at the chain that is attached to it. you cry out, frantic, frightened, and a bit hysterical:  Help! Someone help me! (you stop when you hear a loud dragging sound somewhere in the room. You look out into the darkness and calls out.) Is someone there? (You turn back to the corner where you are chained, and say in a slightly softer but still panicked voice) Shit, Im probably dead. Suddenly, from out within the darkness comes a mans voice:\n**I want to play a game.**",
   "It's been a great year. The war looks like its finally coming to an end and the troops are coming home. Everyone is full of hope, and in celebration, stocking up on candy. As I'm putting on my survivor costume makeup, I analyze it with a critical eye. Is this too Mad Max or is it more like The Walking Dead. I paint on some more dirt stains and get out my fake machete. Machete's work for every doomsday right? I stroll out the house with my dirty duffel bag and head to the best neighborhood in town to get the good stuff. As I strut from house to house, I make a big show of squaring off with every alien, vampire, or fellow survivor costume I see. Most people are fun and play along. My bag fills up, and so does my mood. As I'm heading home I notice some people looking up at the sky and talking fearfully. What's that? Bright streaks are zooming.. This way. A family behind me calls to me. \"Get inside quick! We have a shelter!\" I was about to ask what they were talking about, when the father grabs me by the arm and drags me inside. I'm quickly ushered to the basement. I start to object and he slams the lid shut and locks it. \"Hey, you can't ju....\" BOOM. The bunker shakes and dust falls from the ceiling. A radio in the back crackles and I hear. \"They lied. They promised a cease fire and what we got were nu...\". The radio fizzles out. Nukes?! We all look at each other in horror. The family realizes they're about to share their rations with a stranger. I realize I dropped my bag of candy when the father grabbed me.\n**It's the end, but at least I'm dressed for the part.**",
   `Your friend Marcus Halberstam offers drinks at his place after a long night of drinking at the bar and he wont take no for an answer.\n"Come on, you dumb son of a bitch."\nHe says as he helps you into your jacket. "I've got a preview of the Barneys catalogue and a bottle of Absolut waiting for us."\nYou get to the apartment and notice the living room floor has been meticulously covered with newspaper. You slump drunkenly in a white Eames chair, a glass in hand as Halberstam is looking through his CDs.\n"You like Huey Lewis and the News?" he asks.\n"They're okay." you respond.\n"Their early work was a little too New Wave for my taste. But then Sports came out in 1983, I think they really came into their own, commercially and artistically." Halberstam states as he walks to his bathroom.\n"The whole album has a clear, crisp sound and a new sheen of consummate professionalism that gives the songs a big boost." Halberstam comes back out and walks to the foyer.\n"He's been compared to Elvis Costello but I think Huey has a more bitter, cynical sense of humor."\nYou absent-mindedly leaf through the Barneys catalogue only half listening.\n"Hey, Halberstam?"\n"Yes?"\n"Why are there copies of the Style section all over the place? Do you have a dog? A chow or something?"\n"No."\n"Is that a raincoat?"\n"Yes, it is."\nHe moves to the CD player. and takes a CD out of its case and slides it in the machine. Then states "In 87 Huey released this, Fore!, their most accomplished album. I think their undisputed masterpiece is "HiP To Be Square," a song so catchy that most people probably don't listen to the lyrics. But they should because it's not just about the pleasures of conformity and the importance of trends. It's also a personal statement about the band itself."\nHe walked behind you as he spoke.\n"HEY PAUL!"\nAs you turn around to question him since, well your name isn't Paul, you are greeted with **AN AXE TO THE FACE.**`,
+  "It's Halloween baby, and you're ready to bag more than candy. You've been invited to the biggest party this year and a costume is mandatory. Chicks dig vampires, so it was a no-brainer. You grab a black satin pillowcase thinking it would best suit your look. Why not trick or treat on the way there? You might also meet some honeys with a fang fetish on the way. As you swagger from house to house, you notice a group of girls walking along behind you. They're all wearing black, dark makeup, and very flattering heels. Giggling and whispering among each other, they can't seem to keep their eyes off you. You give them a wink and wonder if you should just go on over, but a large family passes between you and you lose them somehow. Damn, lost your chance for a cute goth girlfriend. You swivel around and keep going. Just another block to the party. You can hear the house up ahead; people laughing, music blaring. Heck yeah, it's party time. A few drinks later...You get into the groove, dancing to the music and you glance over to the stairs. The girls! You grab your sack of candy and dig out three lollipops. \"Hey ladies, can I interest you in something delicious...Other than me of course.\" They giggle and look at each other. Then one of them grabs you by the collar and starts to drag you upstairs. YES, you knew you were getting more than candy tonight. They push you into a room and walk inside seductively, closing the door behind them. \"Whoa ladies, slow down, there's plenty of me to go around and the night is young.\" Their eyes all start to glow green, and their mouths open. They hiss and long fangs start to slide out of their gums. You start to panic and then one of them speaks. **\"Tonight, we are the trick... and you are the treat.**\"",
+  "\"It's a full moon mom, I don't need a flashlight! There's plenty of streetlights anyway!\". Your mother just throws her hands up and fills up the empty plastic jack o lantern for the trick or treaters. \"Why would you listen to me, I'm only your mother, who birthed you at a great sacrifice to her bodily beauty.\" You roll your eyes and grab a grocery bag. \"I have a phone. It has a light. It's fine.\" You hear her take in a deep breath \"You expect people to give you candy when you're not even in a cos-\". You walk out the door and slam it before she can \"mom\" at you anymore. No costume, no problem. You live in a generous neighborhood. You'll tell them something philosophical like \"I am the future me. The me that gets straight A's and is great at sports.\" And they'll eat it up.. Like candy. Straight A's? Yeah Halloween is about the fantasy, alright. You saunter down the street and start your regular route. You get a few raised eyebrows but nobody turns you down. It was a fruitful evening. Your bag is heavy and so are your eyelids. Time to head home. Porch lights start going out and a fog starts setting in. Uh oh, guess it is getting dark. You pull out your phone but can't see much in the haze. You accidentally take a photo and notice something strange in the mist. Is that.. a dog? You peer into the dark where your phone was aimed, and a pair of bright yellow eyes stare back at you. Oh the hell with that, You've seen this movie. You start running. **Unfortunately the werewolf runs faster...**",
+  'Your dad turns on the news and immediately turns it back off. "It\'s nothing but those doomsday people on again, saying tonight is the end. You be careful out there with those nutters about.. and behave." You just shake your head and strap on your wings. "Don\'t worry dad, this isn\'t just a costume. I\'ll be the epitome of grace." You give him your most angelic smile and he chuckles. You\'re going classic but with a twist tonight using a plastic jack o\' lantern pail that also lights up. You switch it on and head out. Lovely. You start skipping down the street, careful to avoid the strange people in white robes holding candles in groups. They looked like the people on tv. Their eyes follow you as you pass. "Prepare yourself, child." You just nod and duck your head, quickening the pace. You wander around the neighborhood, no particular plan of candy collection, and start visiting houses. A man at the door casually mentions to his wife as he\'s closing the door. "Hey I thought we had more candy than this." It does look pretty busy this year; people must be running out quick. You look down at your pail and you could swear it looked emptier than it did a few minutes ago. Strange. At the next house you see a little girl crying. "Someone stole it all mommy!" The concerned mother just looks around. "Who sweetie?" It\'s rude to stare so you keep walking but hold your pail closer. Apparently you have to be wary of thieves now. At the next house a kind lady extends her bowl to you, and as you are reaching in to grab your favorite candy.. It disappears in front of your eyes. The woman gasps and drops the bowl. The candy spills out.. And each one simply vanishes, one after the other. Behind you- you hear cries of alarm as others watch their candy disappear. A group of robed people raise their arms and shout.. **"BEHOLD THE CANDY RAPTURE!"**',
+  "You know this sounds crazy.. but you've lived this day a thousand times and it always ends the same. You wake up, go to your classes, go home, put on my Marty McFly outfit, check your danger map, and make for the streets. It's Halloween and you don't care how many times you have to do this, you are going to get it right this time. You're going to make it home with your candy. You've been chased, beaten, kidnapped, even fallen into manholes... but not today. You draw out your neighborhood map and start labelling the incidents. No you can't take that route, at 8pm a rabid dog shows up and attacks you every time. AHA! You write up a cheat sheet with times and a route. Looking at it, you'd think a madman had done it, but this is going to be the key to success. You head out and start zigzagging; hitting one house in a neighborhood and then jumping backyards into a new one. You're keeping good time. Your bag is filling gloriously. For three hours, you're running with barely any breaks. This is the longest you've ever made it without something happening. You spot the greedy goblin troupe and duck behind a corner. You think you've pushed your luck. Time to head home. The later it gets the more goblins will show up. You've become a master of the night. Silent, watchful. You slink home, careful to evade all notice. You know to avoid the front porch since that's where the giant spider always ambushes you. You tumble across my backyard, staying low. I throw open my back door and slam it closed behind me. I stand there for a few minutes... Breathing heavily. Is this it? \"Am I finally free of this time loop?\" you whisper. You become distinctly aware of the heaviness of my candy bag. You open it up to reach in and partake of your prize... but instead of candy there's a black mamba. It bites you and you hit the floor, wracked with pain. A tall figure with horns and hoofed feet steps out of a shadowy corner of the living room. \"This isn't a time loop, you fool. It's a hell loop.\" **He laughs maniacally as you lose consciousness...**",
 ];
 
 /* Setup Slash Commands */
@@ -522,8 +553,6 @@ client.on("interactionCreate", async (cmd) => {
           ? "YOU ARE STILL ALIVE"
           : ":skull:"
       }**\n\n:candy: **${player.treats}**`,
-
-      timestamp: new Date(),
     };
 
     // If the player has lost we then show them nothing but their loss
@@ -531,7 +560,7 @@ client.on("interactionCreate", async (cmd) => {
       embed.description = "\n\n:skull:\n\n";
       // And when they died.
       embed.footer = {
-        text: `Died at ${new Date(you.latestAttempt).toLocaleString()}`,
+        text: `Died at ${new Date(player.latestAttempt).toLocaleString()}`,
       };
     }
 
