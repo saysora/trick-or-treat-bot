@@ -373,11 +373,11 @@ client.on("interactionCreate", async (cmd) => {
       ) {
         // We don't want to return here we want them to play.
       } else {
-        embed.description = `You can trick or treat again ${moment(
+        embed.description = `Oh aren't we eager?\nToo bad.\nYou must wait **${moment(
           you.latestAttempt
         )
           .add(cooldowntime.int, cooldowntime.unit)
-          .from(moment())}`;
+          .from(moment(), true)}** before you can trick or treat again...`;
 
         embed.footer = {
           text: `You have ${you.treats} 🍬`,
