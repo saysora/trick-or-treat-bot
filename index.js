@@ -15,6 +15,7 @@ const client = new Client({
   intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
 });
 const Database = require("./classes/Database");
+const moment = require("moment");
 
 // Helper function for candy nums
 function randomNumBet(min, max) {
@@ -24,12 +25,6 @@ function randomNumBet(min, max) {
 const paginate = (array, pagesize, pagenum) => {
   return array.slice((pagenum - 1) * pagesize, pagenum * pagesize);
 };
-
-/* 
-/// TODO
-/
-/ + Check for if command is 2 hours later than last trigger
-*/
 
 // WINS
 
@@ -357,6 +352,42 @@ client.on("interactionCreate", async (cmd) => {
       return;
     }
 
+    // Timegate
+
+    const cooldowntime = {
+      int: process.env.TIMECOOLDOWNINT ? process.env.TIMECOOLDOWNINT : 1,
+      unit: process.env.TIMECOOLDOWNUNIT ? process.env.TIMECOOLDOWNUNIT : "h",
+    };
+
+    if (process.env.TIMECOOLDOWNENABLED == "true") {
+      if (
+        moment()
+          .utc()
+          .isSameOrAfter(
+            moment(you.latestAttempt).add(
+              parseInt(cooldowntime.int),
+              cooldowntime.unit
+            )
+          ) &&
+        you.attempts > 0
+      ) {
+        // We don't want to return here we want them to play.
+      } else {
+        embed.description = `You can trick or treat again ${moment(
+          you.latestAttempt
+        )
+          .add(cooldowntime.int, cooldowntime.unit)
+          .from(moment())}`;
+
+        embed.footer = {
+          text: `You have ${you.treats} 🍬`,
+        };
+
+        await cmd.editReply({ embeds: [embed] });
+        return;
+      }
+    }
+
     // CRITICAL WIN 4-8
     if (chance > 600) {
       // Give the user the candy of a random number between 4 and 8
@@ -609,6 +640,12 @@ client.on("interactionCreate", async (cmd) => {
       (daddy) => daddy.id == cmd.member.user.id
     );
 
+    let askerindex = index >= 0 ? "#" + (index + 1) + "." : "💀";
+
+    if (index == -1) {
+      askerindex = "not yet trick or treating.";
+    }
+
     // We create our embed
     const embed = {
       title: ":jack_o_lantern: Sugar Daddies :jack_o_lantern:",
@@ -619,9 +656,7 @@ client.on("interactionCreate", async (cmd) => {
       },
       description: "Find out who the candy connoisseurs are.\n\n",
       footer: {
-        text: `${page}/${pages} • You are ${
-          index >= 0 ? "#" + (index + 1) + "." : "💀"
-        }`,
+        text: `${page}/${pages} • You are ${askerindex}`,
       },
     };
 

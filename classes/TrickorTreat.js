@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Player = require("../db/Player");
+const moment = require("moment");
 // Get Moment JS soonish
 
 class TrickorTreat {
@@ -17,7 +18,7 @@ class TrickorTreat {
       treats: treats,
       attempts: 0,
       lost: false,
-      latestAttempt: new Date(),
+      latestAttempt: moment().utc().format(),
     });
 
     return newplayer.id;
@@ -60,15 +61,15 @@ class TrickorTreat {
   //   return player;
   // }
 
-  static async candyLost(userid, amount) {
-    const player = await Player.findOne({ id: userid });
+  // static async candyLost(userid, amount) {
+  //   const player = await Player.findOne({ id: userid });
 
-    if (!player) return null;
+  //   if (!player) return null;
 
-    player.candylost = player.candylost + amount;
+  //   player.candylost = player.candylost + amount;
 
-    return player;
-  }
+  //   return player;
+  // }
 
   static async give(amount, userid) {
     const player = await Player.findOne({ id: userid });
@@ -79,7 +80,7 @@ class TrickorTreat {
 
     player.attempts = player.attempts + 1;
     player.treats = player.treats + amount;
-    player.latestAttempt = new Date();
+    player.latestAttempt = moment().utc().format();
 
     if (player.treats < 0) {
       player.treats = 0;
@@ -97,7 +98,7 @@ class TrickorTreat {
 
     player.attempts = player.attempts + 1;
     player.treats = player.treats - amount;
-    player.latestAttempt = new Date();
+    player.latestAttempt = moment().utc().format();
 
     if (player.treats < 0) {
       player.treats = 0;
@@ -119,7 +120,7 @@ class TrickorTreat {
 
     player.attempts = player.attempts + 1;
     player.treats = amount;
-    player.latestAttempt = new Date();
+    player.latestAttempt = moment().utc().format();
 
     player.save();
 
@@ -131,9 +132,11 @@ class TrickorTreat {
 
     if (!player) return null;
 
+    player.candylost = player.candylost + player.treats;
+    player.treats = 0;
     player.attempts = player.attempts + 1;
     player.lost = true;
-    player.latestAttempt = new Date();
+    player.latestAttempt = moment().utc().format();
 
     player.save();
 
