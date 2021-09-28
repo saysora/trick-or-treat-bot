@@ -17,7 +17,7 @@ class TrickorTreat {
       treats: treats,
       attempts: 0,
       lost: false,
-      latestattempt: null,
+      latestAttempt: new Date(),
     });
 
     return newplayer.id;
@@ -49,13 +49,23 @@ class TrickorTreat {
     return deleted;
   }
 
-  static async attempt(userid) {
+  // static async attempt(userid) {
+  //   const player = await Player.findOne({ id: userid });
+
+  //   if (!player) return null;
+
+  //   player.attempts = player.attempts + 1;
+  //   player.save();
+
+  //   return player;
+  // }
+
+  static async candyLost(userid, amount) {
     const player = await Player.findOne({ id: userid });
 
     if (!player) return null;
 
-    player.attempts = player.attempts + 1;
-    player.save();
+    player.candylost = player.candylost + amount;
 
     return player;
   }
@@ -67,7 +77,9 @@ class TrickorTreat {
       return null;
     }
 
+    player.attempts = player.attempts + 1;
     player.treats = player.treats + amount;
+    player.latestAttempt = new Date();
 
     if (player.treats < 0) {
       player.treats = 0;
@@ -78,12 +90,36 @@ class TrickorTreat {
     return amount;
   }
 
-  static async setCandy(amount, userid) {
+  static async take(amount, userid) {
     const player = await Player.findOne({ id: userid });
 
     if (!player) return null;
 
+    player.attempts = player.attempts + 1;
+    player.treats = player.treats - amount;
+    player.latestAttempt = new Date();
+
+    if (player.treats < 0) {
+      player.treats = 0;
+    }
+
+    player.save();
+
+    return amount;
+  }
+
+  static async setCandy(amount, userid, candyloss = false) {
+    const player = await Player.findOne({ id: userid });
+
+    if (!player) return null;
+
+    if (candyloss) {
+      player.candylost = player.treats;
+    }
+
+    player.attempts = player.attempts + 1;
     player.treats = amount;
+    player.latestAttempt = new Date();
 
     player.save();
 
@@ -95,7 +131,9 @@ class TrickorTreat {
 
     if (!player) return null;
 
+    player.attempts = player.attempts + 1;
     player.lost = true;
+    player.latestAttempt = new Date();
 
     player.save();
 

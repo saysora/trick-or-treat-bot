@@ -17,11 +17,10 @@ const client = new Client({
 const Database = require("./classes/Database");
 
 // Helper function for candy nums
-
 function randomNumBet(min, max) {
   return Math.floor(Math.random() * (max - min + 1) + min);
 }
-
+// Helper function to paginate our leader board.
 const paginate = (array, pagesize, pagenum) => {
   return array.slice((pagenum - 1) * pagesize, pagenum * pagesize);
 };
@@ -45,11 +44,13 @@ const singularwin = [
   "Sweet! Half chewed gum on the sidewalk and NO ANTS!!",
   "While cleaning your room before you go trick or treating, you find a unexpired Reeses under your bed.",
   "While trick or treating you spot a single gumdrop on a trash can under the moonlight.",
-  "You try to reach the top of the kitchen cabinet, feeling a crinkled wrappe ryou stand on your toes to pull down a dusty Butterfinger.",
+  "You try to reach the top of the kitchen cabinet, feeling a crinkled wrapper you stand on your toes to pull down a dusty Butterfinger.",
   "You grab your trick or treat bag and realize there's a chocolate bar left inside.",
-  "You notice a floating cube with a quesiton mark on it. You hit it and out pops a single chocolate coin!",
+  "You notice a floating cube with a question mark on it. You hit it and out pops a single chocolate coin!",
   "You're cleaning out your old highschool backpack, between some binders you find a pack of Nerds.",
   "You did not succumb to the bad luck. You get one candy.",
+  "You get a lollipop for good behavior!",
+  "You survive jigsaws trap and come home with a new will to live. He leaves you a piece of candy on your pillow as a reward.",
 ];
 
 const wins = [
@@ -70,6 +71,9 @@ const wins = [
   "You pass a mouse hole, there's a plate of cheese adjacent to it. Seeing this fills you with determination, and <AMOUNT>.",
   "You unmask captain cutler and immediately turn him into the police. They give you <AMOUNT> as a reward.",
   "You help stop a troll in main from making the Convo weird! The grateful mods give you <AMOUNT>.",
+  "While trick or treating at your science teachers house, he teaches you how to make your own candy! You gain <AMOUNT>.",
+  "You meet up at your friends house to go trick or treating together. Their mom gives you <AMOUNT> candy to start the night.",
+  "You and your friends visit that spooky house at the end of the street. You find <AMOUNT> of candy left by other scared kids.",
 ];
 
 const criticalwin = [
@@ -84,9 +88,14 @@ const criticalwin = [
   "You take a trip to a haunted house where you scare the pants off your friends. They drop <AMOUNT>. More for you.",
   "Your boss decides to give you your entire paycheck in candy...? You gain <AMOUNT>. Maybe look for a new line of work.",
   "Some dumb bullies try to jump you for your candy. Luckily you've been taking taekwondo. You get <AMOUNT> candy from their bags.",
-  "You find a hidden door behind your grandfather's old wooden closet. Opening the door, it's a not chilly inside but you find a stashed <AMOUNT>.",
+  "You find a hidden door behind your grandfather's old wooden closet. Opening the door ...it's just a wooden closet inside but you find <AMOUNT>.",
   "You and your friend stumble upon a party where they all love your costumes, they award you winners of the party and give you <AMOUNT>! Look at you go.",
   "Your friends hot mom loves your costume and slips you <AMOUNT>. Maybe keep that first part to yourself.",
+  "Your entire garden of candy plants finally grew! You harvest <AMOUNT>.",
+  "You catch your friend doing something they shouldn’t be. They give you <AMOUNT> candy to keep quiet.",
+  "You were one of the few survivors of camp crystal lake. The police give you <AMOUNT> of candy to never speak of it again.",
+  "You raid area 51 with a hundred other nerds but you're the only one who makes it inside. You didn't see any aliens but you find <AMOUNT>.",
+  "Your classmates thought it would be funny to dump pigs blood on you during your Prom Queen acceptance speech. You didn’t think it was very funny and take <AMOUNT> from them.",
 ];
 
 // LOSSES
@@ -112,6 +121,10 @@ const losses = [
   "Your highschool bully attempts to steal your lunch money, but you only have candy! You lose <AMOUNT>.",
   "You got caught TPing Old Man Jenkins house. Your parents make you give <AMOUNT> to your sibling.",
   "The monsters under your bed need something to eat too. Better not be you. You lose <AMOUNT>.",
+  "You spend too much time making your costume perfect and are late to Trick or Treat! You lose <AMOUNT>.",
+  "You forgot the chant and a blue-masked fox swipes <AMOUNT> from you.  Damn it Swiper.",
+  "A blue hedgehog speeds through the neighborhood pick pocketing <AMOUNT> and knocking you over.",
+  "Your mom misheard your costume request and got you a rat costume instead of a Batman costume. The neighborhood rats thinking you are their king swarm you and take <AMOUNT>.",
 ];
 
 // FALSE POSITIVES
@@ -126,7 +139,8 @@ const falsewins = [
   "You were out trick or treating when your dentist sees you. He holds something in his hand but it turns out to be a roll of dental floss.",
   "You trick or treated at a house that **only** gives out healthy snacks. Drats.",
   "Your friend is allergic to peanuts so you decide to trade their Snickers for your Tootsie Pop.",
-  "The house you trick or treated at has a 'take one please' candy basket! ... But it's empty. Damn greey goblins.",
+  "The house you trick or treated at has a 'take one please' candy basket! ... But it's empty. Damn greedy goblins.",
+  "You go trick or treating at Mystery Inc house. Shaggy and Scooby give you a Scooby snack since they ate all the candy before you got there.",
 ];
 
 // LOSE ALL CANDY
@@ -140,6 +154,9 @@ const totalfail = [
   "You received a sentient gummy bear and realize candy have feelings too. You decide to set ALL your candy free in the forest. How sweet of you.",
   "You wanted to check out this clown everyone was hyping up in the sewer grates. You slipped when you tried to take a peek and dropped ALL of your candy.",
   "Some kid robs you at gunpoint for EVERYTHING in your bag... where did he even get that???",
+  "A gang in a funky van foil your spoopy halloween plans. They unmask you and take ALL your loot. You would've gotten away with it too if out weren't for those pesky kids.",
+  "Your friends find out you’ve been plotting to steal their candy. They take ALL YOUR CANDY and their friendship along with it. How Sad.",
+  "You hear a sudden **VWOOP** behind you. As soon as you turn ",
 ];
 
 // ABSOLUTE LOSS
@@ -191,10 +208,6 @@ client.on("ready", async () => {
     .set(commands, process.env.GUILDID)
     .then(console.log("(/) Commands registered"))
     .catch(console.error);
-
-  // client.application.commands
-  //   .fetch({ guildId: process.env.GUILDID })
-  //   .then((data) => console.log(data));
 });
 
 client.on("messageCreate", async (msg) => {
@@ -256,138 +269,243 @@ client.on("interactionCreate", async (cmd) => {
   if (!cmd.isCommand()) return;
 
   if (cmd.commandName == "go-out") {
+    await cmd.deferReply();
+
     const player = await TrickorTreat.addPlayer(
       cmd.member.user.id,
       cmd.guild.id
     );
 
     if (!player) {
-      await cmd.reply("You are already trick or treating.");
+      await cmd.editReply("You are already trick or treating.");
       return;
     }
 
-    return await cmd.reply(`Do be careful out there, <@${player}>...`);
+    await cmd.editReply(`Do be careful out there, <@${player}>...`);
+
+    return;
   }
 
   if (cmd.commandName == "trick-or-treat") {
+    // Defer to edit after processing
+    await cmd.deferReply();
+
+    // Roll for what may happen
     const chance = Math.floor(Math.random() * 1000);
 
+    // Check for the player to ensure we have data on them
     const you = await TrickorTreat.getPlayer(cmd.member.user.id);
 
-    if (!you) return;
+    // Prepare the embed for
 
-    if (you.lost == true) {
-      // Add message
-      await cmd.reply({
-        content: "You are **DEAD** and cannot trick or treat. :skull:",
-        ephemeral: true,
-      });
+    const embed = {
+      title: "Trick or Treat",
+      color: 0xcc5500,
+    };
+
+    // If we do not have this player, invite them to play
+    if (!you) {
+      embed.description = "You must first go out trick or treating...";
+
+      await cmd.editReply({ embeds: [embed] });
+
       return;
     }
 
-    const gainAttempt = await TrickorTreat.attempt(cmd.member.user.id);
+    //If they are dead they CANNOT play
+    if (you.lost == true) {
+      embed.title = "You are DEAD";
+
+      embed.description = "You cannot trick or treat anymore";
+
+      embed.footer = {
+        text: `Died at ${new Date(you.latestAttempt).toLocaleString()}`,
+      };
+
+      await cmd.editReply({ embeds: [embed] });
+      return;
+    }
 
     // CRITICAL WIN 4-8
     if (chance > 600) {
+      // Give the user the candy of a random number between 4 and 8
       const candynum = await TrickorTreat.give(randomNumBet(4, 8), you.id);
 
+      //Create a string to simplify listing it later
       const candystring = candynum + " candies";
 
+      // Randomly select which story to use and convert it's <AMOUNT> string to our candystring
       const randomwin = criticalwin[
         Math.floor(Math.random() * criticalwin.length)
-      ].replace("<AMOUNT>", candystring);
+      ].replace("<AMOUNT>", `**${candystring}**`);
 
-      await cmd.reply(
-        `${randomwin} You now have ${you.treats + candynum} :candy:`
-      );
+      // Update the embed with the new info
+      embed.color = 0xffc53b;
+      embed.description = `${cmd.member} ${randomwin}`;
+      embed.footer = {
+        text: `You now have ${
+          you.treats + candynum < 0 ? 0 : you.treats + candynum
+        } 🍬`,
+      };
+
+      // Edit the interaction and return
+      await cmd.editReply({ embeds: [embed] });
+
+      return;
     }
 
     // NORMAL WIN - 0-3
     if (chance > 100 && chance < 600) {
+      // Give the user the candy of a random number between 0 and 3
       const candynum = await TrickorTreat.give(randomNumBet(0, 3), you.id);
 
+      //Create a string to simplify listing it later (and allow for variation in number terms)
       const candystring =
         candynum > 1 ? candynum + " candies" : candynum + " candy";
 
-      let randomWin;
+      // Since this can be 1 of 3 different category of responses, we want to choose one based on our candynum
+      let randomwin;
 
+      // If the number of candy is 0 we send a false positive
       if (candynum == 0) {
-        randomWin = falsewins[Math.floor(Math.random() * falsewins.length)];
-        await cmd.reply(`${randomWin}`);
+        // Select a random false positive story
+        randomwin = falsewins[Math.floor(Math.random() * falsewins.length)];
+        // Update the embed
+        embed.description = `${cmd.member} ${randomwin}`;
+        embed.color = 0xf3f3f3;
+        embed.footer = {
+          text: `You now have ${you.treats} 🍬`,
+        };
+
+        // Edit the interaction and return
+        await cmd.editReply({ embeds: [embed] });
+
         return;
-      } else if (candynum > 1) {
-        randomWin = wins[Math.floor(Math.random() * wins.length)].replace(
-          "<AMOUNT>",
-          candystring
-        );
-      } else {
-        randomWin = singularwin[
-          Math.floor(Math.random() * singularwin.length)
-        ].replace("<AMOUNT>", candystring);
       }
 
-      await cmd.reply(
-        `${randomWin} You now have ${you.treats + candynum} :candy:`
-      );
+      // If the number of candy is greater than 0
+      if (candynum > 1) {
+        // Update the embed with a new color and set our random win to one of the win stories
+        embed.color = 0x34663d;
+        randomwin = wins[Math.floor(Math.random() * wins.length)].replace(
+          "<AMOUNT>",
+          `**${candystring}**`
+        );
+      } else {
+        // Otherwise change the embed with the single win color and update randomwin to be one of those stories
+        embed.color = 0x24768c;
+        randomwin = singularwin[
+          Math.floor(Math.random() * singularwin.length)
+        ].replace("<AMOUNT>", `**${candystring}**`);
+      }
+
+      // We update our embed now with whichever string was matched
+      embed.description = `${cmd.member} ${randomwin}`;
+      embed.footer = {
+        text: `You now have ${
+          you.treats + candynum < 0 ? 0 : you.treats + candynum
+        } 🍬`,
+      };
+
+      // Edit the interaction and return
+      await cmd.editReply({ embeds: [embed] });
 
       return;
     }
 
     // Normal losses 1-8
     if (chance < 200 && chance > 11) {
-      const candynum = await TrickorTreat.give(-randomNumBet(1, 8), you.id);
+      // We use the take command to ensure we are properly removing a random number between 1 and 8 from users and getting them.
+      const candynum = await TrickorTreat.take(randomNumBet(1, 8), you.id);
 
+      // We set our candy string for the variation of plurality.
       const candystring =
-        -candynum > 1 ? -candynum + " candies" : -candynum + " candy";
+        candynum > 1 ? candynum + " candies" : candynum + " candy";
 
+      // Randomly select which loss story to use for the embed
       const randomLoss = losses[
         Math.floor(Math.random() * losses.length)
-      ].replace("<AMOUNT>", candystring);
+      ].replace("<AMOUNT>", `**${candystring}**`);
 
-      await cmd.reply(
-        `${randomLoss} You now have ${
-          you.treats < 0 ? 0 : you.treats + candynum
-        } :candy:`
-      );
+      // Update the embed
+      embed.color = 0xef4136;
+      embed.description = `${cmd.member} ${randomLoss}`;
+      embed.footer = {
+        text: `You now have ${
+          you.treats - candynum < 0 ? 0 : you.treats - candynum
+        } 🍬`,
+      };
+
+      // Edit interaction and return
+      await cmd.editReply({ embeds: [embed] });
 
       return;
     }
 
     // LOSE ALL CANDY
     if (chance > 1 && chance < 11) {
-      const candynum = await TrickorTreat.setCandy(0, you.id);
+      // We use the setCandy method to just drop the users candy to 0
+      const candynum = await TrickorTreat.setCandy(0, you.id, true);
 
+      // Grab a random lose all story from totalfail
       const randomLoss =
         totalfail[Math.floor(Math.random() * totalfail.length)];
 
-      await cmd.reply(`${randomLoss} You now have ${candynum} :candy:`);
+      // Update embed
+      embed.color = 0x645278;
+      embed.description = `${cmd.member} ${randomLoss}`;
+      embed.footer = {
+        text: `You now have 0 🍬`,
+      };
+
+      // Edit interaction and return
+      await cmd.editReply({ embeds: [embed] });
 
       return;
     }
 
     // YOU LOST
     if (chance == 1 || chance == 0) {
+      // This ends the game for the players
       const youlose = await TrickorTreat.playerLOSS(cmd.member.user.id);
 
+      // We grab a random endgame story
       const story =
         YOULOSTTHEGAME[Math.floor(Math.random() * YOULOSTTHEGAME.length)];
 
-      await cmd.reply(story);
+      // Update the embed
+      embed.color = 0x8a0707;
+      embed.description = `${cmd.member} ${story}`;
+      embed.footer = {
+        text: `You are DEAD.`,
+      };
+
+      // Edit the interaction and return
+      await cmd.editReply({ embeds: [embed] });
 
       return;
     }
   }
 
+  // Bag command for users to look to see how much candy they have
   if (cmd.commandName == "bag") {
+    // We want this to be only for the user.
+    await cmd.deferReply({ ephemeral: true });
+
+    // We get the player and all their info to use for the embed
     const player = await TrickorTreat.getPlayer(cmd.member.user.id);
 
+    // If we cannot find that player we invite them to play.
     if (!player) {
-      await cmd.reply({
+      // Edit interaction and return
+      await cmd.editReply({
         content: "You must first go out trick or treating...",
-        ephemeral: true,
       });
+
       return;
     }
+    // We create our embed where we get fancy to see if the player has their nickname or now
+    // We then do a silly ternary to give some MonkaS vibes if they've been going hard with attempts but haven't lost
 
     const embed = {
       color: 0xcc5500,
@@ -407,35 +525,62 @@ client.on("interactionCreate", async (cmd) => {
 
       timestamp: new Date(),
     };
-    embed;
-    return await cmd.reply({ embeds: [embed], ephemeral: true });
+
+    // If the player has lost we then show them nothing but their loss
+    if (player.lost == true) {
+      embed.description = "\n\n:skull:\n\n";
+      // And when they died.
+      embed.footer = {
+        text: `Died at ${new Date(you.latestAttempt).toLocaleString()}`,
+      };
+    }
+
+    // Edit interaction and return.
+    await cmd.editReply({ embeds: [embed], ephemeral: true });
+    return;
   }
 
+  // Our "Leaderboard"
   if (cmd.commandName == "sugar-daddies") {
+    await cmd.deferReply();
+
     /* I hate this code below for variable names. God forgive me. :') */
+
+    // We get our whole player list except if they have lost. We order that list by how many candies they have.
     const sugardaddies = await TrickorTreat.getPlayers({ lost: false }, [
       ["treats", "desc"],
     ]);
 
+    // We get the page of our leaderboard based on a possible interaction subcommand, but if that is not there we only show the 1st page.
     let page = cmd.options.getInteger("page")
       ? cmd.options.getInteger("page")
       : 1;
 
+    // Using the paginate function at the top we then paginate our board based on 10s.
+    // This slices our results into sets of 10 and returns the set based on the page variable
     let boardpage = paginate(sugardaddies, 10, page);
+
+    // We calculate our page number based on if the number of players are greater than 10
+    // If it is, we divide our player numbers by 10
     let pages = sugardaddies.length > 10 ? sugardaddies.length / 10 : 1;
 
+    // If the user tries to enter a higher page than what we actually have (or smaller) we force page to be 1
     if (page > pages + 1 || page < 1) {
       page = 1;
     }
 
+    // If there is a remainder in splitting our array we defer to the higher number of pages
     if (sugardaddies.length % 10) {
       pages = Math.ceil(pages);
     }
+
+    // We want to tell the player what number they are, so we get them from our overall list not just the splice
 
     const index = sugardaddies.findIndex(
       (daddy) => daddy.id == cmd.member.user.id
     );
 
+    // We create our embed
     const embed = {
       title: ":jack_o_lantern: Sugar Daddies :jack_o_lantern:",
       color: 0xcc5500,
@@ -451,6 +596,7 @@ client.on("interactionCreate", async (cmd) => {
       },
     };
 
+    // We update the embed description field based on the players on that page and assign their number to the left
     boardpage.forEach((daddy, index) => {
       var betterindex = page > 1 ? index + 10 * (page - 1) + 1 : index + 1;
       embed.description += `**${betterindex}.** - <@${daddy.id}> - ${
@@ -458,7 +604,9 @@ client.on("interactionCreate", async (cmd) => {
       }\n`;
     });
 
-    cmd.reply({ embeds: [embed] });
+    // Edit our interaction and return
+    await cmd.editReply({ embeds: [embed] });
+    return;
   }
 });
 
