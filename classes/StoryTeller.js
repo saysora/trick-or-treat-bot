@@ -61,7 +61,7 @@ class Storyteller {
 
   static async randomStoryByCat(category) {
     const count = await Story.countDocuments({ category });
-    console.log(count);
+
     if (!count) return null;
 
     const randomStoryNum = Math.floor(Math.random() * count);

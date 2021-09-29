@@ -14,8 +14,9 @@ class TrickorTreat {
     const newplayer = await Player.create({
       id: id,
       guild: guild,
-      tricks: 0,
+      fails: 0,
       treats: treats,
+      candylost: 0,
       attempts: 0,
       lost: false,
       latestAttempt: moment().utc().format(),
@@ -96,8 +97,10 @@ class TrickorTreat {
 
     if (!player) return null;
 
+    player.fails = player.fails + 1;
     player.attempts = player.attempts + 1;
     player.treats = player.treats - amount;
+    player.candylost = player.candylost + amount;
     player.latestAttempt = moment().utc().format();
 
     if (player.treats < 0) {
