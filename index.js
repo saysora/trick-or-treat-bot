@@ -26,6 +26,11 @@ const paginate = (array, pagesize, pagenum) => {
   return array.slice((pagenum - 1) * pagesize, pagenum * pagesize);
 };
 
+const cooldowntime = {
+  int: process.env.TIMECOOLDOWNINT ? process.env.TIMECOOLDOWNINT : 1,
+  unit: process.env.TIMECOOLDOWNUNIT ? process.env.TIMECOOLDOWNUNIT : "h",
+};
+
 // WINS
 
 const singularwin = [
@@ -49,6 +54,8 @@ const singularwin = [
   "Your teacher hands out a piece of candy to the entire class for halloween.",
   "Your dog brings you a candy covered in slobber. He sure loves you.",
   "Your friend opens a bag of M&Ms in front of you. You stare at him until he hands you a single M&M.",
+  "You're cleaning out your old trick or treat bag, a single gumball rolls out. Best not to question how long that's been in there... Probably a few Halloweens...",
+  "You find a piece of candy wedged between the car seats on your way over to your friends house.",
 ];
 
 const wins = [
@@ -77,6 +84,7 @@ const wins = [
   "Doc appears before you in the DeLorean from Back to the Future. He throws you a bag with <AMOUNT> in it.",
   "You spammed the Trickster too hard and it got confused. It puts an extra <AMOUNT> in your bag.",
   "Someone comes up to you and compliments your well-timed doot meme. They also give you <AMOUNT>.",
+  "You find <AMOUNT> in your loaf of bread by some means of witchcraft. Odd.",
 ];
 
 const criticalwin = [
@@ -96,7 +104,7 @@ const criticalwin = [
   "Your friends hot mom loves your costume and slips you <AMOUNT>. Maybe keep that first part to yourself.",
   "Your entire garden of candy plants finally grew! You harvest <AMOUNT>.",
   "You catch your friend doing something they shouldn’t be. They give you <AMOUNT> candy to keep quiet.",
-  "You were one of the few survivors of camp crystal lake. The police give you <AMOUNT> of candy to never speak of it again.",
+  "You were one of the few survivors of camp crystal lake. The police give you <AMOUNT> to never speak of it again.",
   "You raid area 51 with a hundred other nerds but you're the only one who makes it inside. You didn't see any aliens but you find <AMOUNT>.",
   "Your classmates thought it would be funny to dump pigs blood on you during your Prom Queen acceptance speech. You didn’t think it was very funny and take <AMOUNT> from them.",
   "You follow some drunk old man through a green portal, it takes you to a world of candy! You grab <AMOUNT> before going back through the portal.",
@@ -137,6 +145,8 @@ const losses = [
   "Your cat knocks your drink onto <AMOUNT>. They are unsalvageable.",
   "You get into a fight on your way over to your friends house. Luckily they only take <AMOUNT> and not your whole bag.",
   "After clicking on a Nitro Giveaway link, your computer comes to life and steals <AMOUNT> from your bag. Sucks to suck.",
+  "Your zombie friend Ted CRAVES BRAINS... But he'll settle for <AMOUNT> instead.",
+  "You just got braces and cant have any caramel. You give <AMOUNT> to your sibling.",
 ];
 
 // FALSE POSITIVES
@@ -179,6 +189,9 @@ const totalfail = [
   "Your mom was right too much candy does rot your teeth. You no longer can eat ANY of your candy after that root canal.",
   "You give up all your candy to get your soul back from a demon. Why you made that deal in the first place, nobody knows.",
   "On your way home you stumble across a note. You continue to find notes along your journey home.  You only find six before reaching your destination. Slenderman is not pleased by this and takes ALL your candy.",
+  "ALL of your candy was taken to the upside-down by a Demogorgon. At least Will has a sweet treat for later.",
+  '"Beetle Juice, Beetle Juice Beetle Juice!" you summon him and he turns ALL your candy into dancing shrimp.',
+  "You take a trip to candy mountain with some colorful friends only to be knocked unconscious. You wake up to a missing kidney and ALL your candy stolen. Some friends.",
 ];
 
 // ABSOLUTE LOSS
@@ -193,6 +206,12 @@ const YOULOSTTHEGAME = [
   "\"It's a full moon mom, I don't need a flashlight! There's plenty of streetlights anyway!\". Your mother just throws her hands up and fills up the empty plastic jack o lantern for the trick or treaters. \"Why would you listen to me, I'm only your mother, who birthed you at a great sacrifice to her bodily beauty.\" You roll your eyes and grab a grocery bag. \"I have a phone. It has a light. It's fine.\" You hear her take in a deep breath \"You expect people to give you candy when you're not even in a cos-\". You walk out the door and slam it before she can \"mom\" at you anymore. No costume, no problem. You live in a generous neighborhood. You'll tell them something philosophical like \"I am the future me. The me that gets straight A's and is great at sports.\" And they'll eat it up.. Like candy. Straight A's? Yeah Halloween is about the fantasy, alright. You saunter down the street and start your regular route. You get a few raised eyebrows but nobody turns you down. It was a fruitful evening. Your bag is heavy and so are your eyelids. Time to head home. Porch lights start going out and a fog starts setting in. Uh oh, guess it is getting dark. You pull out your phone but can't see much in the haze. You accidentally take a photo and notice something strange in the mist. Is that.. a dog? You peer into the dark where your phone was aimed, and a pair of bright yellow eyes stare back at you. Oh the hell with that, You've seen this movie. You start running. **Unfortunately the werewolf runs faster...**",
   'Your dad turns on the news and immediately turns it back off. "It\'s nothing but those doomsday people on again, saying tonight is the end. You be careful out there with those nutters about.. and behave." You just shake your head and strap on your wings. "Don\'t worry dad, this isn\'t just a costume. I\'ll be the epitome of grace." You give him your most angelic smile and he chuckles. You\'re going classic but with a twist tonight using a plastic jack o\' lantern pail that also lights up. You switch it on and head out. Lovely. You start skipping down the street, careful to avoid the strange people in white robes holding candles in groups. They looked like the people on tv. Their eyes follow you as you pass. "Prepare yourself, child." You just nod and duck your head, quickening the pace. You wander around the neighborhood, no particular plan of candy collection, and start visiting houses. A man at the door casually mentions to his wife as he\'s closing the door. "Hey I thought we had more candy than this." It does look pretty busy this year; people must be running out quick. You look down at your pail and you could swear it looked emptier than it did a few minutes ago. Strange. At the next house you see a little girl crying. "Someone stole it all mommy!" The concerned mother just looks around. "Who sweetie?" It\'s rude to stare so you keep walking but hold your pail closer. Apparently you have to be wary of thieves now. At the next house a kind lady extends her bowl to you, and as you are reaching in to grab your favorite candy.. It disappears in front of your eyes. The woman gasps and drops the bowl. The candy spills out.. And each one simply vanishes, one after the other. Behind you- you hear cries of alarm as others watch their candy disappear. A group of robed people raise their arms and shout.. **"BEHOLD THE CANDY RAPTURE!"**',
   "You know this sounds crazy.. but you've lived this day a thousand times and it always ends the same. You wake up, go to your classes, go home, put on my Marty McFly outfit, check your danger map, and make for the streets. It's Halloween and you don't care how many times you have to do this, you are going to get it right this time. You're going to make it home with your candy. You've been chased, beaten, kidnapped, even fallen into manholes... but not today. You draw out your neighborhood map and start labelling the incidents. No you can't take that route, at 8pm a rabid dog shows up and attacks you every time. AHA! You write up a cheat sheet with times and a route. Looking at it, you'd think a madman had done it, but this is going to be the key to success. You head out and start zigzagging; hitting one house in a neighborhood and then jumping backyards into a new one. You're keeping good time. Your bag is filling gloriously. For three hours, you're running with barely any breaks. This is the longest you've ever made it without something happening. You spot the greedy goblin troupe and duck behind a corner. You think you've pushed your luck. Time to head home. The later it gets the more goblins will show up. You've become a master of the night. Silent, watchful. You slink home, careful to evade all notice. You know to avoid the front porch since that's where the giant spider always ambushes you. You tumble across my backyard, staying low. I throw open my back door and slam it closed behind me. I stand there for a few minutes... Breathing heavily. Is this it? \"Am I finally free of this time loop?\" you whisper. You become distinctly aware of the heaviness of my candy bag. You open it up to reach in and partake of your prize... but instead of candy there's a black mamba. It bites you and you hit the floor, wracked with pain. A tall figure with horns and hoofed feet steps out of a shadowy corner of the living room. \"This isn't a time loop, you fool. It's a hell loop.\" **He laughs maniacally as you lose consciousness...**",
+  'You\'ve just returned to your house after trick or treating. You and your friends made a pact this year that you would pool all of your candy and share it together. You also decided to all wear animal costumes. Roger is a gorilla, Peter is a pig, and you\'re a bear. For fun you leave your costumes on and start dumping your candy into a big pile on the table. Peter tries to grab one on the sly but Roger slaps his hand away. "I\'ve been thinking guys. I have the best costume, so clearly I think the majority of the candy should go to me." Oh no he didn\'t. Peter starts to object. "That\'s not wh-". Roger flicks him on the nose, interrupting him. "Shut up piggy, let the alphas talk." He looks at you. Although Roger\'s always been a little bit of a bully, this is definitely out of the norm and you\'re not sure how to handle it. "We had a deal Roger. We split it 3 ways. Trades are acceptable, but its gotta be even", you say. "Fine," say\'s Roger. "It\'ll be an even number... but I get first dibs." Peter snorts. "No way, Roger. That\'s bullsh-". Roger decks him. "Whoa! Let\'s not go all Lord of the Flies here, fellas." But it was too late. They start wailing on each other. In the scuffle they fall through the screen door and roll onto the grass. Roger takes a large rock from your fire pit. "Roger, no!". You couldn\'t stop him in time. He bashes Peter\'s head in and turns to you. You slump to the ground in shock. He stands up... holding the bloody rock. "Sorry," says Roger. **"Can\'t have any witnesses".**',
+  "It's been a long day. You've just clocked out of work for Sunshine Cleaners. Nothing more depressing than cleaning other people's dishes and toilets all day. Thankfully, tonight is Halloween and nothing raises the spirit like sugar. You head home. A quick shower and You get into your astronaut costume. \"Tragic news tonight, as Nasa reports an explosion on the international space station..\" You switch off the radio. Oof, that sucks. It looks like you chose an unfortunate costume but it's too late to change it now. You agreed to meet with your friends in town at about 8:30, but it's still early, so why not do some trick or treating in the mean time. You get a phone alert from your news app. \"Debris from exploded space station..\" You close the app. You know its a tragedy and all but you really need to have a good time tonight, and this is too much of a bummer. You do some trick or treating and get tons of compliments on your costume. Mood restored and candy gained, you go to the meetup spot outside the mall where your friends are going to be. You're about to go for a mini snickers when you hear your name. You look up and smile as two of your friends approach from the parking lot. They wave excitedly and you wave back. In the middle of the street they suddenly stop, looking up and behind you. You turn around and a fiery streak is heading... straight for you! You drop the candy and start running. You hear an impact. You friends come running towards you. \"I'm ok,\" you say. \"Look! It's fine haha\". You reach out as they approach and they... run right through You. You turn and look. They're standing in front of a small crater looking in. You walk up and look inside. Your mangled corpse is in the center of the crater. A fiery... toilet seat... hit you? Your reaper grabs you by the shoulder. **\"Sorry honey, that's a shitty way to go.\"**",
+  'You walk up to Granny Teodora\'s house. She\'s not your granny, but that\'s what everyone in the neighborhood calls her. You ring the doorbell and wait impatiently. You can hear her slowly shuffling to the door. "Come on, lady, trick or treat!". The door creaks open and a waft of strange spices and incense hits your nose. Like usual she\'s in some kind of bohemian getup. "Here you go, young one." She drops what looks like a homemade bag of raisins into your bag. "What the hell is this? Don\'t you know Halloween is about candy?" Teodora\'s eyes narrow and she looks at you as if for the first time. "You\'re a nasty one, aren\'t you?" She reaches into her pockets, pulling out some kind of dust. Before you can stop her, she blows it into your face, chants something in a language you\'ve never heard, and slams the door shut. "Psycho, old lady!" You cough and swipe the dust from your eyes. Wait till your dad hears about this. Whatever, you have a lot more houses to hit. You get back to trick or treating. The next house is where your friend lives. You bet his mom will give you the good stuff. You get to the door and shout the magic words. She appears at the door and smiles warmly. "Look who it is! Here have your favorite." She drops a king size bar into your bag. "I knew I could count on you Mrs... Mrs..." She looks mildly  offended that you\'ve forgotten her name but waves and shuts the door. That\'s weird, you\'ve known her all your life. Why would you forget her name? Wait... What\'s your name? Actually... Where are you? You look down and see a strange.. Thing in your grip.. Filled with... What are those? You let go of it and walk a few steps... Ooo shiny... Your mind goes blank and you stand staring into a nearby street lamp, **drooling on yourself...**',
+  "One of your neighbors recently said they think they're being haunted. Tonight, on Halloween, your dad is going to go investigate. Why? Because he's a bonified ghost hunter. He says that Halloween is the best night of the year to score some ghost action. You asked him if you could come with him, but he said that the best way you could help is to just enjoy yourself trick or treating, and bring him back some candy. Before you took off for the night, you swiped one of his EVP recorders. EVP stands for electronic voice phenomena. You may not be able to go with him on his own hunt, but maybe you can get into one of your own. If you find something good, maybe he'll let you join his crew. You head straight for the richest neighborhood in your town. They usually shell out for the best candy. The costumes are killer this year and you have a great time. As you're walking along, you set eyes on the spookiest house you've ever seen in your life. This has got to have ghosts in it. You try the handle on the front door and of course it's locked. Maybe there's another way in. You tip toe around the back and put your face up to the back window. Peering inside, you see a white figure gliding across the room. The figure turns towards you. You hold your breath and duck. After a few moments, you slowly raise your head to look again.. Right in front of the window, a pale face looks directly into yours. She screams! You scream! Someone calls the cops! Apparently it wasn't a ghost, just a lady wrapped in a bed sheet. You apologize but the cops arrest you for trespassing and accuse you of being a peeping tom. As you sit in the back of the cop car, the EVP recorder switches on. A ghostly voice whispers from beyond the grave...**\"Save the pervert stuff for when you're dead, dude. Then no one can see you.\"**",
+  "For the last couple weeks you've noticed something strange about your cat. You often catch her watching you, menacingly, from dark corners and shadowy doorways. You mentioned this to your family but they seem to have no idea what you're talking about. There have also been a number of strange cats hanging around the house that you know don't belong to your neighbors. You catch her glaring again and try to ignore it. Tonight is Halloween and it's all about having fun and collecting candy, not being paranoid that your cat is out to get you. Amusingly, you chose a black cat costume for tonight's trick or treating adventure. You grab your black muslin bag for your treats and head out into the neighborhood. After only a few houses, you notice an alarming number of cats about. Some of them even seem to be following you. Well, maybe they think you're their cat deity, you laugh to yourself. A few more houses down and you spot your cat. What the hell? She's supposed to be at home. You better get her back there as soon as possible before one of these weird cats hurts her. You walk up slowly, trying not to startle her, but she runs around the corner of a house. \"Wait! Here kitty kitty! It's time to come home.\" You round the corner after her and find her standing in the middle of a small park for children. Etched into the sand is a strange diagram. She sits at the center expectantly. You carefully squat down next to her and reach to pick her up. Then you see it. You're surrounded by cats of all kinds, their eyes staring intently. Ouch! You look down to see your cat has scratched you. As the blood runs, the other cats draw closer. They begin to yowl and hiss. All at one they pounce, shredding you everywhere. You fall into the sand and your blood pools into the scratched out symbol in the sand. You hear a hissing voice in your head. **\"Thank you, human, for being the sacrifice to my great return. The return of the goddess BASTET.\"**",
+  'After working on the presidential campaign with Ted Cruz for 4 months, you have been noticed by him. He approaches you. "You\'ve been doing great work and I\'d like to take you out for dinner as a show of thanks." You are honored by his offer and accept. Before going, he asks you to accompany him to his office. You follow him through the halls and follow him into his office. He asks you, "Would you like a drink?" You accept this offer. He tells you to take a seat. As you sit down, you hear the lock on the door click. A devious chuckle escapes Ted\'s mouth. "Oops. That just slipped out." Cold sweat drips down your face as you go pale, scared of what\'s to come. "Why are you locking the door," you ask. He laughs. "It\'s a wonderful time of year, isn\'t it?" You nod nervously and respond. "Yeah, my birthday is in a few days." You turn around in the chair just in time to see him shiver in pleasure before responding. "Yes, it is your birthday soon. How perfect." He snaps his fingers and you hear a click. Looking down, your wrists are now clamped to the chair. In your panic, you yell. "I THOUGHT THOSE WERE JUST RUMOURS!" Ted giggles. "No one will hear you here. But no, those are not rumors. **I am the Zodiac Killer.**"',
 ];
 
 /* Setup Slash Commands */
@@ -297,17 +316,26 @@ client.on("interactionCreate", async (cmd) => {
   if (cmd.commandName == "go-out") {
     await cmd.deferReply();
 
+    const embed = {
+      title: "Trick or Treat",
+      color: 0xcc5500,
+    };
+
     const player = await TrickorTreat.addPlayer(
       cmd.member.user.id,
       cmd.guild.id
     );
 
     if (!player) {
-      await cmd.editReply("You are already trick or treating.");
+      embed.description = "You are already trick or treating.";
+
+      await cmd.editReply({ embeds: [embed] });
       return;
     }
 
-    await cmd.editReply(`Do be careful out there, <@${player}>...`);
+    embed.description = `Do be careful out there, <@${player}>...`;
+
+    await cmd.editReply({ embeds: [embed] });
 
     return;
   }
@@ -354,11 +382,6 @@ client.on("interactionCreate", async (cmd) => {
 
     // Timegate
 
-    const cooldowntime = {
-      int: process.env.TIMECOOLDOWNINT ? process.env.TIMECOOLDOWNINT : 1,
-      unit: process.env.TIMECOOLDOWNUNIT ? process.env.TIMECOOLDOWNUNIT : "h",
-    };
-
     if (process.env.TIMECOOLDOWNENABLED == "true") {
       if (
         moment()
@@ -372,6 +395,8 @@ client.on("interactionCreate", async (cmd) => {
         you.attempts > 0
       ) {
         // We don't want to return here we want them to play.
+      } else if (you.attempts == 0) {
+        // Also don't fire here.
       } else {
         embed.description = `Oh aren't we eager?\nToo bad.\nYou must wait **${moment(
           you.latestAttempt
@@ -380,7 +405,7 @@ client.on("interactionCreate", async (cmd) => {
           .from(moment(), true)}** before you can trick or treat again...`;
 
         embed.footer = {
-          text: `You have ${you.treats} 🍬`,
+          text: `You have ${you.treats} 🍬 • you can also check your bag to see when you can trick or treat again`,
         };
 
         await cmd.editReply({ embeds: [embed] });
@@ -417,7 +442,7 @@ client.on("interactionCreate", async (cmd) => {
     }
 
     // NORMAL WIN - 0-3
-    if (chance > 100 && chance < 600) {
+    if (chance >= 200 && chance < 600) {
       // Give the user the candy of a random number between 0 and 3
       const candynum = await TrickorTreat.give(randomNumBet(0, 3), you.id);
 
@@ -585,6 +610,29 @@ client.on("interactionCreate", async (cmd) => {
           : ":skull:"
       }**\n\n:candy: **${player.treats}**`,
     };
+
+    if (
+      moment()
+        .utc()
+        .isSameOrBefore(
+          moment(player.latestAttempt).add(
+            parseInt(cooldowntime.int),
+            cooldowntime.unit
+          )
+        )
+    ) {
+      embed.footer = {
+        text:
+          "Time until next trick or treat: " +
+          moment(player.latestAttempt)
+            .add(cooldowntime.int, cooldowntime.unit)
+            .from(moment(), true),
+      };
+    } else {
+      embed.footer = {
+        text: "You can trick or treat",
+      };
+    }
 
     // If the player has lost we then show them nothing but their loss
     if (player.lost == true) {
