@@ -11,11 +11,13 @@ const {
   MessageButton,
 } = require("discord.js");
 const TrickorTreat = require("./classes/TrickorTreat");
+const Storyteller = require("./classes/StoryTeller");
 const client = new Client({
   intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
 });
 const Database = require("./classes/Database");
 const moment = require("moment");
+const { off } = require("./db/Player");
 
 // Helper function for candy nums
 function randomNumBet(min, max) {
@@ -253,10 +255,15 @@ client.on("ready", async () => {
     .set(commands, process.env.GUILDID)
     .then(console.log("(/) Commands registered"))
     .catch(console.error);
+
+  await client.user.setPresence({
+    activities: [{ name: "with each and every one of you..." }],
+  });
 });
 
 client.on("messageCreate", async (msg) => {
-  if (msg.author.id !== "84695051535384576") return;
+  if (!["890794962353029130", "84695051535384576"].includes(msg.author.id))
+    return;
 
   if (msg.content == "!responses") {
     return await msg.channel
@@ -306,6 +313,239 @@ client.on("messageCreate", async (msg) => {
     }
 
     msg.channel.send(`${category[num]}`);
+    return;
+  }
+
+  const msgcmdfilter = (m) => m.author.id === msg.author.id;
+
+  if (msg.content == "!addstory") {
+    await msg.channel.send("What is the category?");
+    const category = await msg.channel
+      .awaitMessages({
+        filter: msgcmdfilter,
+        max: 1,
+        time: 30000,
+        errors: ["time"],
+      })
+      .catch((e) => console.error(e));
+
+    const embed = {
+      color: 0xcc5500,
+      title: "Story added!",
+    };
+
+    if (!category) {
+      await msg.reply("You need to specify a category");
+      return;
+    }
+
+    const categoryanswer = category.first().content;
+
+    await msg.channel.send("What is the story?");
+
+    const story = await msg.channel
+      .awaitMessages({
+        filter: msgcmdfilter,
+        max: 1,
+        time: 60000,
+        errors: ["time"],
+      })
+      .catch((e) => console.error(e));
+
+    if (!story) {
+      await msg.reply("you need a story!");
+      return;
+    }
+
+    const storyanswer = story.first().content;
+
+    const addedStory = await Storyteller.addStory(
+      categoryanswer.toLowerCase(),
+      storyanswer
+    );
+
+    if (!addedStory) {
+      // Something went wrong, probably.
+      return;
+    }
+
+    embed.description = addedStory.content;
+    embed.fields = [
+      {
+        name: "Category",
+        value: addedStory.category,
+      },
+    ];
+
+    embed.footer = {
+      text: "Story ID: " + addedStory.id,
+    };
+
+    msg.reply({ embeds: [embed] });
+
+    return;
+  }
+
+  if (msg.content.startsWith("!editstory")) {
+    const args = msg.content.split(" ");
+    args.shift();
+
+    if (!args[0]) {
+      await msg.channel.send("You must supply an ID");
+      return;
+    }
+
+    const embed = {
+      color: 0xcc5500,
+      title: "Story edited!",
+    };
+
+    await msg.channel
+      .send("What is the new story?")
+      .catch((e) => console.error(e));
+
+    const storychoice = await msg.channel
+      .awaitMessages({
+        filter: msgcmdfilter,
+        max: 1,
+        time: 60000,
+        errors: ["time"],
+      })
+      .catch((e) => console.error(e));
+
+    if (!storychoice) {
+      await msg.channel.send("You must send a message");
+      return;
+    }
+
+    const storyanswer = storychoice.first().content;
+
+    console.log(args[0]);
+
+    const storyToUpdate = await Storyteller.editStoryContent(
+      args[0],
+      storyanswer
+    );
+
+    if (!storyToUpdate) {
+      await msg.channel.send("Something went wrong.");
+      console.error(storyToUpdate);
+      return;
+    }
+
+    embed.description = storyToUpdate.content;
+    embed.footer = {
+      text: "Story ID: " + storyToUpdate.id,
+    };
+
+    msg.channel.send({ embeds: [embed] });
+    return;
+  }
+
+  // Edit category
+
+  // Delete Story
+
+  if (msg.content.startsWith("!deletestory")) {
+    const args = msg.content.split(" ");
+    args.shift();
+
+    if (!args[0]) {
+      await msg.channel
+        .send("You must provide an ID")
+        .catch((e) => console.error(e));
+      return;
+    }
+
+    const story = await Storyteller.getStory(args[0]);
+
+    if (!story) {
+      await msg.channel
+        .send("There is no story with that ID")
+        .catch((e) => console.error(e));
+      return;
+    }
+
+    const embed = {
+      color: 0xcc5500,
+      title: "Delete Story?",
+      description: story.content,
+      fields: [
+        {
+          name: "Category",
+          value: `${story.category}`,
+        },
+        {
+          name: "ID",
+          value: `${story.id}`,
+        },
+      ],
+      footer: {
+        text: "Type 'yes' to delete",
+      },
+    };
+
+    await msg.channel.send({ embeds: [embed] }).catch((e) => console.error(e));
+
+    const doDelete = await msg.channel
+      .awaitMessages({
+        filter: msgcmdfilter,
+        time: 30000,
+        max: 1,
+        errors: ["time"],
+      })
+      .catch((e) => console.error(e));
+
+    if (!doDelete) {
+      await msg.channel
+        .send("Something went wrong.")
+        .catch((e) => console.error(e));
+      return;
+    }
+
+    const delAnswer = doDelete.first().content;
+
+    if (!delAnswer.toLowerCase() == "yes") {
+      await msg.channel
+        .send("Deletion canceled")
+        .catch((e) => console.error(e));
+      return;
+    }
+
+    const deletedStory = await Storyteller.deleteStory(args[0]);
+
+    if (!deletedStory) {
+      console.error("Something went wrong.");
+      return;
+    }
+
+    embed.title = "Story Deleted";
+
+    msg.channel.send({ embeds: [embed] });
+    return;
+  }
+
+  if (msg.content.startsWith("!single")) {
+    const args = msg.content.split(" ");
+    args.shift();
+    let category = singularwin;
+    if (args[0]) {
+      category = args[0];
+    }
+    const teststory = await Storyteller.randomStoryByCat(category);
+
+    if (!teststory) {
+      // Flavor
+      return;
+    }
+
+    const embed = {
+      color: 0xcc5500,
+      title: "Trick or Treat",
+      description: teststory.content,
+    };
+
+    msg.channel.send({ embeds: [embed] });
     return;
   }
 });
