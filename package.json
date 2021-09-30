@@ -18,11 +18,10 @@
   "author": "saysora",
   "license": "ISC",
   "dependencies": {
-    "@discordjs/rest": "^0.1.0-canary.0",
-    "discord-api-types": "^0.23.1",
-    "discord.js": "^13.1.0",
+    "axios": "^0.21.4",
     "dotenv": "^10.0.0",
     "moment": "^2.29.1",
-    "mongoose": "^6.0.7"
+    "mongoose": "^6.0.7",
+    "ws": "^8.2.2"
   }
 }
