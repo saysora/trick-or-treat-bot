@@ -718,7 +718,9 @@ client.on("interactionCreate", async (cmd) => {
       // const randomLoss =
       //   totalfail[Math.floor(Math.random() * totalfail.length)];
 
-      randomloss = await Storyteller.randomStoryByCat("totalfail");
+      let randomloss = await Storyteller.randomStoryByCat("totalfail");
+
+      randomloss = randomloss.content;
 
       if (!randomloss) {
         randomloss = "You lost ALL YOUR CANDY!";
@@ -820,7 +822,8 @@ client.on("interactionCreate", async (cmd) => {
             parseInt(cooldowntime.int),
             cooldowntime.unit
           )
-        )
+        ) &&
+      player.treats > 0
     ) {
       embed.footer = {
         text:
