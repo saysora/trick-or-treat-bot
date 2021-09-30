@@ -72,6 +72,51 @@ class Storyteller {
 
     return randomstory;
   }
+
+  static async getCategories() {
+    const cats = [];
+
+    const stories = await Story.find();
+
+    if (!stories) {
+      return null;
+    }
+
+    stories.forEach((story) => {
+      if (!cats.includes(story.category)) {
+        cats.push(story.category);
+      }
+    });
+
+    return cats;
+  }
+
+  // static async countStoriesByCat() {
+  //   const cats = [];
+
+  //   const stories = await Story.find();
+
+  //   if (!stories) {
+  //     return null;
+  //   }
+
+  //   stories.forEach((story) => {
+  //     if (!cats.includes(story.category)) {
+  //       cats.push(story.category);
+  //     }
+  //   });
+
+  // }
+
+  static async countStories(category) {
+    const count = await Story.countDocuments({ category });
+
+    if (!count) {
+      return 0;
+    }
+
+    return count;
+  }
 }
 
 module.exports = Storyteller;

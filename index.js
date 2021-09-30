@@ -84,55 +84,68 @@ client.on("messageCreate", async (msg) => {
 
   if (!["655351648373178388"].includes(msg.guild.id)) return;
 
-  if (msg.content == "!responses") {
-    return await msg.channel
-      .send(`Singular Win: ${singularwin.length}\nNormal Win: ${wins.length}\nCritical Win: ${criticalwin.length}\nLosses: ${losses.length}\nFalse Wins: ${falsewins.length}\nTotal Fails: ${totalfail.length}\nYou Lose: ${YOULOSTTHEGAME.length}
-    `);
-  }
-  if (msg.content.startsWith("!test")) {
-    const args = msg.content.split(" ");
-    args.shift();
+  if (msg.content == "!categories") {
+    const cats = await Storyteller.getCategories();
 
-    let category;
-    switch (args[0]) {
-      case "singularwin":
-        category = singularwin;
-        break;
-      case "wins":
-        category = wins;
-        break;
-      case "critwin":
-        category = criticalwin;
-        break;
-      case "losses":
-        category = losses;
-        break;
-      case "totalfail":
-        category = totalfail;
-        break;
-      case "lose":
-        category = YOULOSTTHEGAME;
-        break;
-      default:
-        category = singularwin;
-        break;
+    if (!cats) {
+      await msg.channel.send("Something went wrong");
+      return;
     }
 
-    let num = args[1];
+    const embed = {
+      color: 0xcc5500,
+      title: "Story Categories",
+      fields: [],
+    };
 
-    switch (args[1]) {
-      case "first":
-        num = 0;
-        break;
-      case "last":
-        num = category.length - 1;
-        break;
-      default:
-        break;
-    }
+    cats.forEach((cat, index) => {
+      embed.description += `${cat}\n`;
+    });
 
-    msg.channel.send(`${category[num]}`);
+    await msg.channel.send({ embeds: [embed] });
     return;
+  }
+
+  if (msg.content == "!responses") {
+    const cats = await Storyteller.getCategories();
+
+    if (!cats) {
+      await msg.channel.send("Something went wrong");
+      return;
+    }
+
+    const embed = {
+      color: 0xcc5500,
+      title: "Story Categories",
+      fields: [],
+    };
+
+    const total = cats.map(async (cat) => {
+      const number = await Storyteller.countStories(cat);
+
+      if (!number) {
+        return;
+      }
+
+      return `${cat} - ${number}`;
+    });
+
+    Promise.all(total)
+      .then((values) => {
+        embed.description = `${values.map((val) => val + "\n").join(" ")}`;
+        let valuenums = values.map((val) => val.trim().split("-")[1]);
+        let totalnum = valuenums.reduce(
+          (acc, a) => parseInt(acc) + parseInt(a)
+        );
+        embed.description += `Total: **${totalnum}**`;
+        msg.channel.send({ embeds: [embed] });
+        return;
+      })
+      .catch((e) => {
+        console.error(e);
+        msg.channel.send("There was an error");
+        return;
+      });
   }
 
   const msgcmdfilter = (m) => m.author.id === msg.author.id;
@@ -436,7 +449,7 @@ client.on("interactionCreate", async (cmd) => {
     await cmd.deferReply();
 
     const embed = {
-      title: "Trick or Treat",
+      title: "You leave to trick or treat",
       color: 0xcc5500,
     };
 
@@ -446,13 +459,19 @@ client.on("interactionCreate", async (cmd) => {
     );
 
     if (!player) {
-      embed.description = "You are already trick or treating.";
+      embed.title = "You already are trick or treating";
+      embed.description = "...or did you forget?";
 
       await cmd.editReply({ embeds: [embed] });
       return;
     }
 
-    embed.description = `Do be careful out there, <@${player}>...`;
+    embed.description = `\n🏃‍♀️🏃🏃‍♂️🏠\n`;
+    embed.footer = {
+      text: `Do be careful out there, ${
+        cmd.member.nickname ? cmd.member.nickname : cmd.member.user.username
+      }...\n\n`,
+    };
 
     await cmd.editReply({ embeds: [embed] });
 
