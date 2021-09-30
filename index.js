@@ -2,7 +2,6 @@ require("dotenv").config();
 
 const WebSocket = require("ws");
 const axios = require("axios");
-// const fetch = require("node-fetch");
 
 // Prep for Guilded getting
 const TrickorTreat = require("./classes/TrickorTreat");
@@ -67,12 +66,17 @@ client.on("message", async (msg) => {
 
     const { message } = eventData;
 
-    if (message.hasOwnProperty("createdByBotId")) return;
+    if (message.hasOwnProperty("createdByBotId") || message.type !== "default")
+      return;
 
     console.log(message);
 
     // Enable check for specific channel later
-    // if(message.channelId !== process.env.GAMECHANNEL) return;
+    // if (message.channelId !== process.env.GAMECHANNEL) return;
+
+    if (message.content == "!test") {
+      sendMsg(message.channelId, `<@${message.createdBy}>`);
+    }
 
     if (message.content == "!go-out") {
       const player = await TrickorTreat.addPlayer(message.createdBy, "hch");
@@ -80,6 +84,7 @@ client.on("message", async (msg) => {
       if (!player) {
         sendMsg(message.channelId, "You already went out.", {
           replyMessageIds: [message.id],
+          isPrivate: true,
         });
         return;
       }
@@ -98,6 +103,7 @@ client.on("message", async (msg) => {
       if (!player) {
         sendMsg(message.channelId, `You need to go out first`, {
           replyMessageIds: [message.id],
+          isPrivate: true,
         });
 
         return;
@@ -117,7 +123,7 @@ client.on("message", async (msg) => {
                     cooldowntime.unit
                   )
                 ) && player.treats > 0
-              ? "Time until next trick or treat:" +
+              ? "Time until next trick or treat: " +
                 moment(player.latestAttempt)
                   .add(cooldowntime.int, cooldowntime.unit)
                   .from(moment(), true)
@@ -126,6 +132,7 @@ client.on("message", async (msg) => {
         }`,
         {
           replyMessageIds: [message.id],
+          isPrivate: true,
         }
       );
 
@@ -152,6 +159,7 @@ client.on("message", async (msg) => {
           ).toLocaleString()}`,
           {
             replyMessageIds: [message.id],
+            isPrivate: true,
           }
         );
         return;
@@ -184,6 +192,7 @@ client.on("message", async (msg) => {
               .from(moment(), true)}** before you can trick or treat again...`,
             {
               replyMessageIds: [message.id],
+              isPrivate: true,
             }
           );
 
@@ -335,7 +344,7 @@ client.on("message", async (msg) => {
         sendMsg(
           message.channelId,
           `${randomloss}\n\nYou now have ${
-            you.treats + candynum < 0 ? 0 : you.treats - candynum
+            you.treats - candynum < 0 ? 0 : you.treats - candynum
           } 🍬`,
           {
             replyMessageIds: [message.id],
@@ -355,6 +364,8 @@ client.on("message", async (msg) => {
         // Grab a random lose all story from totalfail
 
         let randomloss = await Storyteller.randomStoryByCat("totalfail");
+
+        randomloss = randomloss.content;
 
         if (!randomloss) {
           randomloss = "You lost ALL YOUR CANDY!";
