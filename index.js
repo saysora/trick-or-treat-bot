@@ -823,7 +823,7 @@ client.on("interactionCreate", async (cmd) => {
             cooldowntime.unit
           )
         ) &&
-      player.treats > 0
+      player.attempts > 0
     ) {
       embed.footer = {
         text:
