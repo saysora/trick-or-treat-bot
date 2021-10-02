@@ -145,7 +145,7 @@ function connect() {
                       parseInt(cooldowntime.int),
                       cooldowntime.unit
                     )
-                  ) && player.treats > 0
+                  ) && player.attempts > 0
                 ? "Time until next trick or treat: " +
                   moment(player.latestAttempt)
                     .add(cooldowntime.int, cooldowntime.unit)
