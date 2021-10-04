@@ -41,6 +41,19 @@ const sendMsg = (channel, content, options = {}) => {
   );
 };
 
+const sendHook = (embed = {}) => {
+  return axios.post(
+    process.env.WEBHOOKURL,
+    { embeds: [embed] },
+    {
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    }
+  );
+};
+
 let reconnectTimer = null;
 function stopOtherReconnects() {
   if (reconnectTimer) {
@@ -86,11 +99,270 @@ function connect() {
 
       if (
         message.hasOwnProperty("createdByBotId") ||
+        message.hasOwnProperty("crearedByWebhookId") ||
         message.type !== "default"
       )
         return;
 
       console.log(message);
+
+      if (
+        message.content.startsWith("!addstory") &&
+        message.createdBy == "x4oJZXoA"
+      ) {
+        const args = message.content.split("|").map((piece) => piece.trim());
+        args.shift();
+        if (!args.length == 2) {
+          return;
+        }
+        const category = args[0].toLowerCase();
+        const story = args[1];
+
+        if (!category || !story) {
+          return;
+        }
+
+        const embed = {
+          color: 0xcc5500,
+          title: "Story added!",
+        };
+
+        const newstory = await Storyteller.addStory(category, story);
+
+        if (!newstory) {
+          sendMsg(
+            message.channelId,
+            `Something went wrong adding that story.`,
+            {
+              replyMessageIds: [message.id],
+              isPrivate: true,
+            }
+          );
+          return;
+        }
+
+        embed.description = newstory.content;
+        embed.fields = [
+          {
+            name: "Category",
+            value: newstory.category,
+          },
+        ];
+
+        embed.footer = {
+          text: "Story ID: " + newstory.id,
+        };
+
+        sendHook(embed);
+
+        return;
+      }
+
+      if (
+        message.content.startsWith("!editstory") &&
+        message.createdBy == "x4oJZXoA"
+      ) {
+        const args = message.content.split("|").map((piece) => piece.trim());
+        args.shift();
+        if (!args.length == 2) {
+          return;
+        }
+        const id = args[0].toLowerCase();
+        const story = args[1];
+
+        if (!id || !story) {
+          return;
+        }
+
+        const editedstory = await Storyteller.editStoryContent(id, story);
+
+        if (!editedstory) {
+          sendMsg(
+            message.channelId,
+            `Something went wrong adding that story.`,
+            {
+              replyMessageIds: [message.id],
+              isPrivate: true,
+            }
+          );
+          return;
+        }
+
+        const embed = {
+          color: 0xcc5500,
+          title: "Story edited!",
+          description: editedstory.content,
+          fields: [{ name: "Category", value: editedstory.category }],
+          footer: {
+            text: "Story ID: " + editedstory.id,
+          },
+        };
+
+        sendHook(embed);
+
+        return;
+      }
+
+      if (
+        message.content.startsWith("!editcat") &&
+        message.createdBy == "x4oJZXoA"
+      ) {
+        const args = message.content.split("|").map((piece) => piece.trim());
+        args.shift();
+        if (!args.length == 2) {
+          return;
+        }
+        const id = args[0];
+        const category = args[1].toLowerCase();
+
+        if (!id || !category) {
+          return;
+        }
+
+        const editedcat = await Storyteller.editStoryCategory(id, category);
+
+        if (!editedcat) {
+          sendMsg(
+            message.channelId,
+            `Something went wrong adding that story.`,
+            {
+              replyMessageIds: [message.id],
+              isPrivate: true,
+            }
+          );
+          return;
+        }
+
+        const embed = {
+          color: 0xcc5500,
+          title: "Story category edited!",
+          description: editedcat.content,
+          fields: [{ name: "Category", value: editedcat.category }],
+          footer: {
+            text: "Story ID: " + editedcat.id,
+          },
+        };
+
+        sendHook(embed);
+
+        return;
+      }
+
+      if (
+        message.content.startsWith("!delstory") &&
+        message.createdBy == "x4oJZXoA"
+      ) {
+        const args = message.content.split("|").map((piece) => piece.trim());
+        args.shift();
+        if (!args.length == 2) {
+          return;
+        }
+        const id = args[0];
+        // const category = args[1].toLowerCase();
+
+        if (!id) {
+          return;
+        }
+
+        const story = await Storyteller.getStory(id);
+
+        if (!story) {
+          sendMsg(
+            message.channelId,
+            `Something went wrong adding that story.`,
+            {
+              replyMessageIds: [message.id],
+              isPrivate: true,
+            }
+          );
+          return;
+        }
+
+        const embed = {
+          color: 0xcc5500,
+          title: "Story Deleted",
+          description: story.content,
+          fields: [
+            {
+              name: "Category",
+              value: `${story.category}`,
+            },
+            {
+              name: "ID",
+              value: `${story.id}`,
+            },
+          ],
+        };
+
+        const delstory = await Storyteller.deleteStory(id);
+
+        if (!delstory) {
+          sendMsg(
+            message.channelId,
+            `Something went wrong adding that story.`,
+            {
+              replyMessageIds: [message.id],
+              isPrivate: true,
+            }
+          );
+          return;
+        }
+
+        sendHook(embed);
+
+        return;
+      }
+
+      if (
+        message.content.startsWith("!tellstory") &&
+        message.createdBy == "x4oJZXoA"
+      ) {
+        const args = message.content.split("|").map((piece) => piece.trim());
+        args.shift();
+        if (!args.length == 2) {
+          return;
+        }
+        const id = args[0];
+        // const category = args[1].toLowerCase();
+
+        if (!id) {
+          return;
+        }
+
+        const story = await Storyteller.getStory(id);
+
+        if (!story) {
+          sendMsg(
+            message.channelId,
+            `Something went wrong adding that story.`,
+            {
+              replyMessageIds: [message.id],
+              isPrivate: true,
+            }
+          );
+          return;
+        }
+
+        const embed = {
+          color: 0xcc5500,
+          title: "Story",
+          description: story.content,
+          fields: [
+            {
+              name: "Category",
+              value: `${story.category}`,
+            },
+            {
+              name: "ID",
+              value: `${story.id}`,
+            },
+          ],
+        };
+
+        sendHook(embed);
+
+        return;
+      }
 
       // Enable check for specific channel later
       // if (message.channelId !== process.env.GAMECHANNEL) return;
@@ -110,9 +382,20 @@ function connect() {
           return;
         }
 
-        sendMsg(message.channelId, "Do be careful out there.", {
-          replyMessageIds: [message.id],
-        });
+        const embed = {
+          title: "You leave to trick or treat",
+          color: 0xcc5500,
+          description: `\n🏃‍♀️🏃🏃‍♂️🏠\n`,
+          footer: {
+            text: `Do be careful out there...`,
+          },
+        };
+
+        sendHook(embed);
+
+        // sendMsg(message.channelId, "Do be careful out there.", {
+        //   replyMessageIds: [message.id],
+        // });
 
         return;
       }
@@ -188,6 +471,11 @@ function connect() {
           return;
         }
 
+        const embed = {
+          title: "Trick or Treat",
+          color: 0xcc5500,
+        };
+
         // Timegate
 
         if (process.env.TIMECOOLDOWNENABLED == "true") {
@@ -247,18 +535,28 @@ function connect() {
           // Update our strings to remove the amount
           randomwin = randomwin.content.replace(
             "<AMOUNT>",
-            `**${candystring}**`
+            `${candystring.toUpperCase()}`
           );
 
-          sendMsg(
-            message.channelId,
-            `${randomwin}\n\nYou now have ${
+          embed.color = 0xffc53b;
+          embed.description = `${randomwin}`;
+          embed.footer = {
+            text: `You now have ${
               you.treats + candynum < 0 ? 0 : you.treats + candynum
             } 🍬`,
-            {
-              replyMessageIds: [message.id],
-            }
-          );
+          };
+
+          sendHook(embed);
+
+          // sendMsg(
+          //   message.channelId,
+          //   `${randomwin}\n\nYou now have ${
+          //     you.treats + candynum < 0 ? 0 : you.treats + candynum
+          //   } 🍬`,
+          //   {
+          //     replyMessageIds: [message.id],
+          //   }
+          // );
 
           // Edit the interaction and return
 
@@ -287,13 +585,23 @@ function connect() {
             if (!randomwin) {
               randomwin = "Oh... You didn't get any candy...";
             }
-            sendMsg(
-              message.channelId,
-              `${randomwin}\n\nYou still have ${you.treats} 🍬`,
-              {
-                replyMessageIds: [message.id],
-              }
-            );
+
+            // Update the embed
+            embed.description = `${randomwin}`;
+            embed.color = 0xf3f3f3;
+            embed.footer = {
+              text: `You now have ${you.treats} 🍬`,
+            };
+
+            sendHook(embed);
+
+            // sendMsg(
+            //   message.channelId,
+            //   `${randomwin}\n\nYou still have ${you.treats} 🍬`,
+            //   {
+            //     replyMessageIds: [message.id],
+            //   }
+            // );
             // Edit the interaction and return
 
             return;
@@ -302,6 +610,7 @@ function connect() {
           // If the number of candy is greater than 0
           if (candynum > 1) {
             // Update the embed with a new color and set our random win to one of the win stories
+            embed.color = 0x34663d;
             randomwin = await Storyteller.randomStoryByCat("wins");
 
             if (!randomwin) {
@@ -311,9 +620,10 @@ function connect() {
             // Update our strings to remove the amount
             randomwin = randomwin.content.replace(
               "<AMOUNT>",
-              `**${candystring}**`
+              `${candystring.toUpperCase()}`
             );
           } else {
+            embed.color = 0x24768c;
             // Otherwise change the embed with the single win color and update randomwin to be one of those stories
             randomwin = await Storyteller.randomStoryByCat("singularwin");
 
@@ -324,20 +634,29 @@ function connect() {
             // Update our strings to remove the amount
             randomwin = randomwin.content.replace(
               "<AMOUNT>",
-              `**${candystring}**`
+              `${candystring.toUpperCase()}`
             );
           }
 
           // We update our embed now with whichever string was matched
-          sendMsg(
-            message.channelId,
-            `${randomwin}\n\nYou now have ${
+
+          embed.description = `${randomwin}`;
+          embed.footer = {
+            text: `You now have ${
               you.treats + candynum < 0 ? 0 : you.treats + candynum
             } 🍬`,
-            {
-              replyMessageIds: [message.id],
-            }
-          );
+          };
+
+          sendHook(embed);
+          // sendMsg(
+          //   message.channelId,
+          //   `${randomwin}\n\nYou now have ${
+          //     you.treats + candynum < 0 ? 0 : you.treats + candynum
+          //   } 🍬`,
+          //   {
+          //     replyMessageIds: [message.id],
+          //   }
+          // );
 
           return;
         }
@@ -365,20 +684,29 @@ function connect() {
           // Update our strings to remove the amount
           randomloss = randomloss.content.replace(
             "<AMOUNT>",
-            `**${candystring}**`
+            `${candystring.toUpperCase()}`
           );
 
           // Update the embed
-
-          sendMsg(
-            message.channelId,
-            `${randomloss}\n\nYou now have ${
+          embed.color = 0xef4136;
+          embed.description = `${randomloss}`;
+          embed.footer = {
+            text: `You now have ${
               you.treats - candynum < 0 ? 0 : you.treats - candynum
             } 🍬`,
-            {
-              replyMessageIds: [message.id],
-            }
-          );
+          };
+
+          sendHook(embed);
+
+          // sendMsg(
+          //   message.channelId,
+          //   `${randomloss}\n\nYou now have ${
+          //     you.treats - candynum < 0 ? 0 : you.treats - candynum
+          //   } 🍬`,
+          //   {
+          //     replyMessageIds: [message.id],
+          //   }
+          // );
 
           // Edit interaction and return
 
@@ -401,10 +729,17 @@ function connect() {
           }
 
           // Update embed
+          embed.color = 0x645278;
+          embed.description = `${randomloss}`;
+          embed.footer = {
+            text: `You now have 0 🍬`,
+          };
 
-          sendMsg(message.channelId, `${randomloss}\n\nYou now have 0 🍬`, {
-            replyMessageIds: [message.id],
-          });
+          sendHook(embed);
+
+          // sendMsg(message.channelId, `${randomloss}\n\nYou now have 0 🍬`, {
+          //   replyMessageIds: [message.id],
+          // });
 
           // Edit interaction and return
 
@@ -420,7 +755,7 @@ function connect() {
           // const story =
           //   YOULOSTTHEGAME[Math.floor(Math.random() * YOULOSTTHEGAME.length)];
 
-          const story = await Storyteller.randomStoryByCat("gameover");
+          let story = await Storyteller.randomStoryByCat("gameover");
 
           story = story.content;
 
@@ -433,10 +768,17 @@ function connect() {
           // randomwin = randomwin.content.replace('<AMOUNT>', `**${candystring}**`);
 
           // Update the embed
+          embed.color = 0x8a0707;
+          embed.description = `${story}`;
+          embed.footer = {
+            text: `You are DEAD.`,
+          };
 
-          sendMsg(message.channelId, `${story}\n\nYou are **DEAD**`, {
-            replyMessageIds: [message.id],
-          });
+          sendHook(embed);
+
+          // sendMsg(message.channelId, `${story}\n\nYou are **DEAD**`, {
+          //   replyMessageIds: [message.id],
+          // });
 
           // Edit the interaction and return
 
