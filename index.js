@@ -371,16 +371,10 @@ function connect() {
         sendMsg(message.channelId, `<@${message.createdBy}>`);
       }
 
+      // ACTUAL game commands
+
       if (message.content == "!go-out") {
         const player = await TrickorTreat.addPlayer(message.createdBy, "hch");
-
-        if (!player) {
-          sendMsg(message.channelId, "You already went out.", {
-            replyMessageIds: [message.id],
-            isPrivate: true,
-          });
-          return;
-        }
 
         const embed = {
           title: "You leave to trick or treat",
@@ -390,6 +384,24 @@ function connect() {
             text: `Do be careful out there...`,
           },
         };
+
+        // Make sure the game turns off at the proper time (November 1st 2021)
+        if (moment().isSameOrAfter(moment(process.env.ENDTIME))) {
+          embed.title = "Halloween is over.";
+          embed.description =
+            "You can no longer Trick or Treat.\nBut I'll see you next year...";
+          embed.footer = "";
+          sendHook(embed);
+          return;
+        }
+
+        if (!player) {
+          sendMsg(message.channelId, "You already went out.", {
+            replyMessageIds: [message.id],
+            isPrivate: true,
+          });
+          return;
+        }
 
         sendHook(embed);
 
@@ -446,6 +458,16 @@ function connect() {
       }
 
       if (message.content == "!trick-or-treat") {
+        // Make sure the game turns off at the proper time (November 1st 2021)
+        if (moment().isSameOrAfter(moment(process.env.ENDTIME))) {
+          let endgameEmbed = {};
+          endgameEmbed.title = "Halloween is over.";
+          endgameEmbed.description =
+            "You can no longer Trick or Treat.\nBut I'll see you next year...";
+          sendHook(endgameEmbed);
+          return;
+        }
+
         const chance = Math.floor(Math.random() * 1000);
 
         // Check for the player to ensure we have data on them
