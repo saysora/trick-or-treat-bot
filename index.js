@@ -769,7 +769,7 @@ client.on("interactionCreate", async (cmd) => {
       // const story =
       //   YOULOSTTHEGAME[Math.floor(Math.random() * YOULOSTTHEGAME.length)];
 
-      const story = await Storyteller.randomStoryByCat("gameover");
+      let story = await Storyteller.randomStoryByCat("gameover");
 
       story = story.content;
 
