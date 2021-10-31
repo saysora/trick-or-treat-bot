@@ -453,6 +453,15 @@ client.on("interactionCreate", async (cmd) => {
       color: 0xcc5500,
     };
 
+    // Make sure the game turns off at the proper time (November 1st 2021)
+    if (moment().isSameOrAfter(moment(process.env.ENDTIME))) {
+      embed.title = "Halloween is over.";
+      embed.description =
+        "You can no longer Trick or Treat.\nBut I'll see you next year...";
+      await cmd.editReply({ embeds: [embed] });
+      return;
+    }
+
     const player = await TrickorTreat.addPlayer(
       cmd.member.user.id,
       cmd.guild.id
@@ -481,6 +490,15 @@ client.on("interactionCreate", async (cmd) => {
   if (cmd.commandName == "trick-or-treat") {
     // Defer to edit after processing
     await cmd.deferReply();
+
+    // Make sure the game turns off at the proper time (November 1st 2021)
+    if (moment().isSameOrAfter(moment(process.env.ENDTIME))) {
+      embed.title = "Halloween is over.";
+      embed.description =
+        "You can no longer Trick or Treat.\nBut I'll see you next year...";
+      await cmd.editReply({ embeds: [embed] });
+      return;
+    }
 
     // Roll for what may happen
     const chance = Math.floor(Math.random() * 1000);
@@ -787,6 +805,15 @@ client.on("interactionCreate", async (cmd) => {
 
     // If we cannot find that player we invite them to play.
     if (!player) {
+      // Make sure the game turns off at the proper time (November 1st 2021)
+      if (moment().isSameOrAfter(moment(process.env.ENDTIME))) {
+        embed.title = "Halloween is over.";
+        embed.description =
+          "You can no longer Trick or Treat.\nBut I'll see you next year...";
+        await cmd.editReply({ embeds: [embed] });
+        return;
+      }
+
       // Edit interaction and return
       await cmd.editReply({
         content: "You must first go out trick or treating...",
