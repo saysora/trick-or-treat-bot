@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const PlayerSchema = new mongoose.Schema({
   id: String,
@@ -23,4 +23,6 @@ const PlayerSchema = new mongoose.Schema({
   lost: false,
 });
 
-module.exports = mongoose.model("Player", PlayerSchema);
+const Player = mongoose.model("Player", PlayerSchema);
+
+export default Player;

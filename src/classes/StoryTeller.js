@@ -1,7 +1,6 @@
-const mongoose = require("mongoose");
-const Story = require("../db/Story");
+import Story from "../db/Story";
 
-class Storyteller {
+export class Storyteller {
   // Create a story
   static async addStory(category, thestory) {
     const story = await Story.find({ content: thestory, category: category });
@@ -118,5 +117,3 @@ class Storyteller {
     return count;
   }
 }
-
-module.exports = Storyteller;

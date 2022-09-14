@@ -1,9 +1,8 @@
-const mongoose = require("mongoose");
-const Player = require("../db/Player");
-const moment = require("moment");
+import Player from "../db/Player";
+import moment from "moment";
 // Get Moment JS soonish
 
-class TrickorTreat {
+export class TrickorTreat {
   static async addPlayer(id, guild, treats = 0) {
     // if (this.players.find((p) => p.id == id)) return;
 
@@ -146,5 +145,3 @@ class TrickorTreat {
     return player;
   }
 }
-
-module.exports = TrickorTreat;
