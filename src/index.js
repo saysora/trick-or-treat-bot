@@ -214,7 +214,7 @@ client.on("ChatMessageCreated", async (data) => {
     }
 
     const embed = {
-      color: 0xcc5500,
+      color: constants.base,
       title: "Story Deleted",
       description: story.content,
       fields: [
@@ -274,7 +274,7 @@ client.on("ChatMessageCreated", async (data) => {
     }
 
     const embed = {
-      color: 0xcc5500,
+      color: constants.base,
       title: "Story",
       description: story.content,
       fields: [
@@ -296,13 +296,18 @@ client.on("ChatMessageCreated", async (data) => {
     });
   }
 
+  // Code to force game to be in Moogle Cafe
+
+  if (serverId !== "Mldaad6E") {
+    return await sendMsg(message.channelId, {
+      content: `The only place to play is in the Moogle Cafe! Consider joining today!\n https://www.guilded.gg/i/27dPwKwk`,
+    });
+  }
+
   // ACTUAL game commands
 
   if (message.content == "!go-out") {
-    const player = await TrickorTreat.addPlayer(
-      message.createdBy,
-      message.serverId
-    );
+    const player = await TrickorTreat.addPlayer(message.createdBy, serverId);
 
     const embed = {
       title: "You leave to trick or treat",
