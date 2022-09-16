@@ -1,5 +1,7 @@
 import axios from "axios";
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 const headers = {
   Authorization: `Bearer ${process.env.TOKEN}`,
   Accept: "application/json",
@@ -67,14 +69,23 @@ export default class Guilded {
   };
 
   static sendMsg = async (channel, message = {}) => {
+    let response;
     try {
-      return await POST(
+      response = await POST(
         `${this.api}${this.types.channels}/${channel}/messages`,
         message
       );
     } catch (e) {
       console.error(JSON.stringify(e.response.data, null, 2));
     }
+
+    if (response.status === 429) {
+      const retryTime = parseInt(response.headers["Retry-After"]);
+      await sleep(retryTime * 1000);
+      return sendMsg(channel, message);
+    }
+
+    return response;
   };
 
   static delMsg = async (channel, message) => {
@@ -179,3 +190,4 @@ export const addListItem = Guilded.addListItem;
 export const getChannel = Guilded.getChannel;
 export const getServer = Guilded.getServer;
 export const banMember = Guilded.banMember;
+export const testTimeout = Guilded.testTimeout;

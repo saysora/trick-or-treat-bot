@@ -6,9 +6,8 @@ import { Storyteller } from "./classes/StoryTeller";
 // Prep for Guilded getting
 
 import moment from "moment";
-import { sendMsg } from "../../defender/src/guilded/Guilded";
 import constants from "./constants";
-import { delMsg, getMember } from "./guilded/Guilded";
+import { delMsg, getMember, sendMsg } from "./guilded/Guilded";
 
 const botclient = new BotClient(process.env.TOKEN);
 
@@ -41,8 +40,8 @@ const paginate = (array, pagesize, pagenum) => {
 };
 
 const cooldowntime = {
-  int: process.env.TIMECOOLDOWNINT ? process.env.TIMECOOLDOWNINT : 1,
-  unit: process.env.TIMECOOLDOWNUNIT ? process.env.TIMECOOLDOWNUNIT : "h",
+  int: process.env.COOLDOWN_TIME ?? 1,
+  unit: process.env.COOLDOWN_UNIT ?? "h",
 };
 
 let client = botclient.emitter;
@@ -600,7 +599,7 @@ client.on("ChatMessageCreated", async (data) => {
 
     // Timegate
 
-    if (process.env.TIMECOOLDOWNENABLED == "true") {
+    if (process.env.COOLDOWN_ENABLED == "true") {
       if (
         moment()
           .utc()
