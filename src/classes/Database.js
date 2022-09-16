@@ -28,7 +28,7 @@ export class Database {
 
     db.on("error", console.error.bind("Connection error:"));
     db.once("open", () => {
-      console.log("Connected to Defender DB");
+      console.log(`Connected to ${mongodb}`);
     });
   }
 }

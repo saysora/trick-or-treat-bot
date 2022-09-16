@@ -77,6 +77,16 @@ export default class Guilded {
     }
   };
 
+  static delMsg = async (channel, message) => {
+    try {
+      return await DELETE(
+        `${this.api}${this.types.channels}/${channel}/messages/${message}`
+      );
+    } catch (e) {
+      console.error(JSON.stringify(e.response.data, null, 2));
+    }
+  };
+
   /* Member */
   static getMember = async (server, member) => {
     try {
@@ -162,6 +172,7 @@ export default class Guilded {
 export const getMsg = Guilded.getMsg;
 export const getMsgs = Guilded.getMsgs;
 export const sendMsg = Guilded.sendMsg;
+export const delMsg = Guilded.delMsg;
 export const getMember = Guilded.getMember;
 export const addRole = Guilded.addRole;
 export const addListItem = Guilded.addListItem;

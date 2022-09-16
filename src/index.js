@@ -8,11 +8,28 @@ import { Storyteller } from "./classes/StoryTeller";
 import moment from "moment";
 import { sendMsg } from "../../defender/src/guilded/Guilded";
 import constants from "./constants";
+import { delMsg, getMember } from "./guilded/Guilded";
 
 const botclient = new BotClient(process.env.TOKEN);
 
 const prefix = process.env.PREFIX;
 const botowner = process.env.BOT_OWNER_ID;
+
+const gameserver = process.env.GAMESERVER ?? null;
+const gamechannel = process.env.GAMECHANNEL ?? null;
+const commandlist = [
+  {
+    action: "!help",
+    description: "View all commands.",
+  },
+  {
+    action: "!go-out",
+    description: "Use First. Starts trick or treating.",
+  },
+  { action: "!bag", description: "View how much candy you've collected." },
+  { action: "!trick-or-treat", description: "Attempt to collect candy." },
+  { action: "!lb", description: "View the leaderboard" },
+];
 
 // Helper function for candy nums
 function randomNumBet(min, max) {
@@ -50,6 +67,105 @@ client.on("ChatMessageCreated", async (data) => {
 
   // Story add / edit commands
 
+  if (
+    message.createdBy == botowner &&
+    message.content.startsWith("!sayembed")
+  ) {
+    const args = message.content.split("|").map((piece) => piece.trim());
+    await delMsg(message.channelId, message.id);
+    args.shift();
+
+    if (!args.length == 2) {
+      return;
+    }
+
+    const { user } = await getMember(serverId, process.env.BOTUSERID);
+
+    const { avatar } = user;
+
+    const embed = {
+      // title: "Surely this can't be ALL the candy, kupo!",
+      color: constants.base,
+      author: {
+        name: user.name,
+      },
+      thumbnail: {
+        url: avatar ?? "https://i.imgur.com/GbA4vQk.png",
+      },
+      description: `\n${args[1]}\n\n`,
+    };
+
+    return await sendMsg(args[0], {
+      embeds: [embed],
+    });
+  }
+
+  if (message.createdBy == botowner && message.content.startsWith("!say")) {
+    const args = message.content.split("|").map((piece) => piece.trim());
+    await delMsg(message.channelId, message.id);
+    args.shift();
+
+    if (!args.length == 2) {
+      return;
+    }
+
+    return await sendMsg(args[0], {
+      content: `${args[1]}`,
+    });
+  }
+
+  if (message.content == "!lore") {
+    const { user } = await getMember(serverId, process.env.BOTUSERID);
+
+    const { avatar } = user;
+
+    await delMsg(message.channelId, message.id);
+    const embed = {
+      title: "Surely this can't be ALL the candy, kupo!",
+      color: constants.base,
+      author: {
+        name: user.name,
+      },
+      thumbnail: {
+        url: avatar ?? "https://i.imgur.com/GbA4vQk.png",
+      },
+      description: `
+      Halt! Who goes there, kupo?
+
+      Oh, I didn't see you there, kupo.
+
+      What do you mean I look suspicious, kupo!?
+
+      I'm not suspicious in the slightest, kupo!
+
+      My name is Mogrid, and I am a moogle, kupo!
+
+      You see, I followed my nose and found these delightful sweets, kupo.
+
+      I simply must find more of these and take them back to my friends, kupo!
+
+      Hmm... But I don't know where else to look, kupo!
+
+      I know, kupo! You shall help me collect all the sweets, kupo!
+
+      I'll reward you handsomly, I assure you, kupo!
+
+      However, you must collect it all before **midnight** on ${moment(
+        process.env.ENDTIME
+      )
+        .subtract(1, "d")
+        .format("MMMM DD")}, kupo!
+      `,
+      footer: {
+        text: `Type !go-out to begin...`,
+      },
+    };
+
+    return await sendMsg(message.channelId, {
+      embeds: [embed],
+    });
+  }
+
   // Add story
   if (
     message.content.startsWith("!addstory") &&
@@ -68,7 +184,7 @@ client.on("ChatMessageCreated", async (data) => {
     }
 
     const embed = {
-      color: 0xcc5500,
+      color: constants.base,
       title: "Story added!",
     };
 
@@ -298,20 +414,50 @@ client.on("ChatMessageCreated", async (data) => {
 
   // Code to force game to be in Moogle Cafe
 
-  if (serverId !== "Mldaad6E") {
+  if (
+    gameserver &&
+    serverId !== gameserver &&
+    commandlist.some((cmd) => message.content.startsWith(cmd.action))
+  ) {
     return await sendMsg(message.channelId, {
       content: `The only place to play is in the Moogle Cafe! Consider joining today!\n https://www.guilded.gg/i/27dPwKwk`,
     });
   }
 
+  if (
+    gamechannel &&
+    gamechannel !== message.channelId &&
+    commandlist.some((cmd) => message.content.startsWith(cmd.action))
+  ) {
+    return;
+  }
+
+  /* If there is a game channel, force all game commands to be in there */
+
   // ACTUAL game commands
+
+  if (message.content == "!help") {
+    const embed = {
+      title: "Command List",
+      color: constants.base,
+      description: `${commandlist
+        .map((cmd) => `**${cmd.action}** - ${cmd.description}`)
+        .join("\n\n")}`,
+    };
+
+    return await sendMsg(message.channelId, {
+      embeds: [embed],
+      isPrivate: true,
+      replyMessageIds: [message.id],
+    });
+  }
 
   if (message.content == "!go-out") {
     const player = await TrickorTreat.addPlayer(message.createdBy, serverId);
 
     const embed = {
       title: "You leave to trick or treat",
-      color: 0xcc5500,
+      color: constants.base,
       description: `\n🏃‍♀️🏃🏃‍♂️🏠\n`,
       footer: {
         text: `Do be careful out there...`,
@@ -783,8 +929,6 @@ client.on("ChatMessageCreated", async (data) => {
         daddy.lost == false ? daddy.treats + " :candy:" : ":skull:"
       }\n`;
     });
-
-    // Edit our interaction and return
 
     return await sendMsg(message.channelId, {
       embeds: [embed],
