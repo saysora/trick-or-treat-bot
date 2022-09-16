@@ -457,9 +457,9 @@ client.on("ChatMessageCreated", async (data) => {
     const embed = {
       title: "You leave to trick or treat",
       color: constants.base,
-      description: `\n🏃‍♀️🏃🏃‍♂️🏠\n`,
+      description: `\n🏃‍♀️🏃🏃‍♂️🌲\n\nDo be careful out there...`,
       footer: {
-        text: `Do be careful out there...`,
+        text: `Type !trick-or-treat to collect candy`,
       },
     };
 
