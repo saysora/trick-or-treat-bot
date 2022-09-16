@@ -76,7 +76,9 @@ export default class Guilded {
         message
       );
     } catch (e) {
+      response = e;
       console.error(JSON.stringify(e.response.data, null, 2));
+      // return
     }
 
     if (response.status === 429) {
