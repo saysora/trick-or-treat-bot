@@ -47,24 +47,40 @@ export default class Guilded {
   /* Message */
 
   static getMsg = async (channel, message) => {
+    let response;
     try {
-      const theMessage = await GET(
+      response = await GET(
         `${this.api}${this.types.channels}/${channel}/${this.types.messages}/${message}`
       );
-      return theMessage.data;
+      return response.data;
     } catch (e) {
+      response = e;
       console.error(JSON.stringify(e.response.data, null, 2));
+    }
+
+    if (response.status === 429) {
+      const retryTime = parseInt(response.headers["Retry-After"]);
+      await sleep(retryTime * 1000);
+      return this.getMsg(channel, message);
     }
   };
 
   static getMsgs = async (channel) => {
+    let response;
     try {
-      const theMessages = await GET(
+      response = await GET(
         `${this.api}${this.types.channels}/${channel}/${this.types.messages}`
       );
-      return theMessages.data;
+      return response.data;
     } catch (e) {
+      response = e;
       console.error(JSON.stringify(e.response.data, null, 2));
+    }
+
+    if (response.status === 429) {
+      const retryTime = parseInt(response.headers["Retry-After"]);
+      await sleep(retryTime * 1000);
+      return this.getMsgs(channel);
     }
   };
 
@@ -84,100 +100,146 @@ export default class Guilded {
     if (response.status === 429) {
       const retryTime = parseInt(response.headers["Retry-After"]);
       await sleep(retryTime * 1000);
-      return sendMsg(channel, message);
+      return this.sendMsg(channel, message);
     }
-
-    return response;
   };
 
   static delMsg = async (channel, message) => {
+    let response;
     try {
-      return await DELETE(
+      response = await DELETE(
         `${this.api}${this.types.channels}/${channel}/messages/${message}`
       );
+      return response.data;
     } catch (e) {
+      resonse = e;
       console.error(JSON.stringify(e.response.data, null, 2));
+    }
+
+    if (response.status === 429) {
+      const retryTime = parseInt(response.headers["Retry-After"]);
+      await sleep(retryTime * 1000);
+      return this.delMsg(channel, message);
     }
   };
 
   /* Member */
   static getMember = async (server, member) => {
+    let response;
     try {
-      const user = await GET(
+      response = await GET(
         `${this.api}${this.types.servers}/${server}/${this.types.members}/${member}`
       );
-      return user.data.member;
+      return response.data.member;
     } catch (e) {
+      response = e;
       console.error(JSON.stringify(e.response.data, null, 2));
+    }
+
+    if (response.status === 429) {
+      const retryTime = parseInt(response.headers["Retry-After"]);
+      await sleep(retryTime * 1000);
+      return this.getMember(server, member);
     }
   };
 
   /* Roles */
 
   static addRole = async (server, member, role) => {
+    let response;
     try {
-      return await PUT(
+      response = await PUT(
         `${this.api}${this.types.servers}/${server}/${this.types.members}/${member}/${this.types.roles}/${role}`
       );
+      return response;
     } catch (e) {
+      response = e;
       console.error(JSON.stringify(e.response.data, null, 2));
+    }
+
+    if (response.status === 429) {
+      const retryTime = parseInt(response.headers["Retry-After"]);
+      await sleep(retryTime * 1000);
+      return this.addRole(server, member, role);
     }
   };
 
   /* Lists */
 
   static addListItem = async (channel, message, note = {}) => {
+    let response;
     try {
-      return await POST(
+      response = await POST(
         `${this.api}${this.types.channels}/${channel}/${this.types.listItem}`,
         {
           message,
           note,
         }
       );
+      return response;
     } catch (e) {
+      response = e;
       console.error(JSON.stringify(e.response.data, null, 2));
+    }
+
+    if (response.status === 429) {
+      const retryTime = parseInt(response.headers["Retry-After"]);
+      await sleep(retryTime * 1000);
+      return this.addListItem(channel, message, note);
     }
   };
 
   /* Channels */
 
   static getChannel = async (channel) => {
+    let response;
     try {
-      const theChannel = await GET(
-        `${this.api}${this.types.channels}/${channel}`
-      );
-      return theChannel.data.channel;
+      response = await GET(`${this.api}${this.types.channels}/${channel}`);
+      return response.data.channel;
     } catch (e) {
+      response = e;
       console.error(JSON.stringify(e.response.data, null, 2));
-      return e.response.data;
+    }
+    if (response.status === 429) {
+      const retryTime = parseInt(response.headers["Retry-After"]);
+      await sleep(retryTime * 1000);
+      return this.getChannel(channel);
     }
   };
 
   static getServer = async (server) => {
+    let response;
     try {
-      const theServer = await GET(
-        `${this.api}/${this.types.servers}/${server}`
-      );
-      return theServer.data.server;
+      response = await GET(`${this.api}/${this.types.servers}/${server}`);
+      return response.data.server;
     } catch (e) {
       console.error(JSON.stringify(e.response.data, null, 2));
+    }
+
+    if (response.status === 429) {
+      const retryTime = parseInt(response.headers["Retry-After"]);
+      await sleep(retryTime * 1000);
+      return this.getServer(server);
     }
   };
 
   /* Member Bans */
   // TODO: Refactor code to use id terminology
   static banMember = async (serverId, userId, reason) => {
+    let response;
     try {
-      const theBannedMember = await POST(
-        `${this.api}/servers/${serverId}/bans/${userId}`,
-        {
-          reason,
-        }
-      );
-      return theBannedMember.data;
+      response = await POST(`${this.api}/servers/${serverId}/bans/${userId}`, {
+        reason,
+      });
+      return response.data;
     } catch (e) {
+      response = e;
       console.error(JSON.stringify(e.response.data, null, 2));
+    }
+    if (response.status === 429) {
+      const retryTime = parseInt(response.headers["Retry-After"]);
+      await sleep(retryTime * 1000);
+      return this.banMember(serverId, userId, reason);
     }
   };
 }
