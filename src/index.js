@@ -155,13 +155,40 @@ client.on("ChatMessageCreated", async (data) => {
         .subtract(1, "d")
         .format("MMMM DD")}, kupo!
       `,
+    };
+
+    const embed2 = {
+      title: "How to collect candy, kupo!",
+      color: constants.base,
+      author: {
+        name: user.name,
+      },
+      thumbnail: {
+        url: avatar ?? "https://i.imgur.com/GbA4vQk.png",
+      },
+      description: `
+      I think you call it... trick or treating, kupo?
+
+      1. You can only **!trick-or-treat** command once every ${
+        process.env.COOLDOWN_ENABLED
+          ? `**${cooldowntime.int}${cooldowntime.unit}**`
+          : ""
+      } since you last used it, kupo.
+      
+      2. If you're ever confused, type **!help**, kupo!
+      
+      3. That is all there is to it, kupo!
+        `,
       footer: {
         text: `Type !go-out to begin...`,
       },
     };
 
-    return await sendMsg(message.channelId, {
+    await sendMsg(message.channelId, {
       embeds: [embed],
+    });
+    return await sendMsg(message.channelId, {
+      embeds: [embed2],
     });
   }
 
