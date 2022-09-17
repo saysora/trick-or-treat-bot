@@ -175,7 +175,7 @@ client.on("ChatMessageCreated", async (data) => {
           : ""
       } since you last used it, kupo.
       
-      2. If you're ever confused, type **!help**, kupo!
+      2. If you're ever confused, type **!help** kupo!
       
       3. That is all there is to it, kupo!
         `,
