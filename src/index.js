@@ -662,18 +662,19 @@ client.on("ChatMessageCreated", async (data) => {
       } else if (you.attempts == 0) {
         // Also don't fire here.
       } else {
-        (embed.description = `Oh aren't we eager?\nToo bad.\nYou must wait **${moment(
-          you.latestAttempt
-        )
+        (embed.description = `Oh aren't we eager, <@${
+          message.createdBy
+        }>? \nToo bad.\nYou must wait **${moment(you.latestAttempt)
           .add(cooldowntime.int, cooldowntime.unit)
           .from(moment(), true)}** before you can trick or treat again...`),
           (embed.footer = {
             text: `You have ${you.treats} 🍬 • you can also check your bag to see when you can trick or treat again`,
           });
 
+        await delMsg(message.channelId, message.id);
+
         return await sendMsg(message.channelId, {
           embeds: [embed],
-          replyMessageIds: [message.id],
           isPrivate: true,
         });
       }
