@@ -113,7 +113,7 @@ client.on("ChatMessageCreated", async (data) => {
     });
   }
 
-  if (message.content == "!lore") {
+  if (message.content == "!lore" && message.createdBy == botowner) {
     const { user } = await getMember(serverId, process.env.BOTUSERID);
 
     const { avatar } = user;
@@ -190,6 +190,26 @@ client.on("ChatMessageCreated", async (data) => {
     return await sendMsg(message.channelId, {
       embeds: [embed2],
     });
+  }
+
+  if (message.content == "!categories" && message.createdBy == botowner) {
+    const cats = await Storyteller.getCategories();
+
+    if (!cats) {
+      return;
+    }
+
+    const embed = {
+      color: constants.base,
+      title: "Story Categories",
+      description: "",
+    };
+
+    cats.forEach((cat, index) => {
+      embed.description += `${cat}\n`;
+    });
+
+    return await sendMsg(message.channelId, { embeds: [embed] });
   }
 
   // Add story
