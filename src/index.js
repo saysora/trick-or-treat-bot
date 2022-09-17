@@ -929,7 +929,8 @@ client.on("ChatMessageCreated", async (data) => {
 
     // We calculate our page number based on if the number of players are greater than 10
     // If it is, we divide our player numbers by 10
-    let pages = sugardaddies.length > 10 ? sugardaddies.length / 10 : 1;
+    let pages =
+      sugardaddies.length > 10 ? Math.ceil(sugardaddies.length / 10) : 1;
 
     // If the user tries to enter a higher page than what we actually have (or smaller) we force page to be 1
     if (page > pages || page < 1) {
