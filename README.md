@@ -2,6 +2,8 @@
 
 Trick or Treat? See which you'll receive.
 
+![](https://i.imgur.com/7HsxJ92.gif)
+
 ### Commands
 
 `!go-out` - Simple enough. Go trick or treating.
@@ -11,6 +13,10 @@ Trick or Treat? See which you'll receive.
 `!bag` - View how much candy you've profitted.
 
 `!lb` - View the leader board of who has the most candy. Optional argument for page number if it exists
+
+#### Purpose
+
+Just wanted to make a fun game for the Halloween season using a Discord bot.
 
 #### Special Thanks
 
