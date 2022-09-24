@@ -1,9 +1,9 @@
-const mongoose = require("mongoose");
-const Player = require("../db/Player");
-const moment = require("moment");
+import Player from "../db/Player";
+import Timeline from "../db/Timeline";
+import moment from "moment";
 // Get Moment JS soonish
 
-class TrickorTreat {
+export class TrickorTreat {
   static async addPlayer(id, guild, treats = 0) {
     // if (this.players.find((p) => p.id == id)) return;
 
@@ -20,6 +20,17 @@ class TrickorTreat {
       attempts: 0,
       lost: false,
       latestAttempt: moment().utc().format(),
+    });
+
+    const tEvent = {
+      candyNum: 0,
+      time: moment().utc().format(),
+      eventType: "gamestart",
+    };
+
+    await Timeline.create({
+      playerId: id,
+      events: [tEvent],
     });
 
     return newplayer.id;
@@ -74,6 +85,7 @@ class TrickorTreat {
 
   static async give(amount, userid) {
     const player = await Player.findOne({ id: userid });
+    const timeline = await Timeline.findOne({ playerId: userid });
 
     if (!player) {
       return null;
@@ -87,13 +99,24 @@ class TrickorTreat {
       player.treats = 0;
     }
 
-    player.save();
+    const tEvent = {
+      candyNum: amount,
+      time: moment().utc().format(),
+      eventType: "won",
+    };
+
+    timeline.events.push(tEvent);
+
+    await timeline.save();
+
+    await player.save();
 
     return amount;
   }
 
   static async take(amount, userid) {
     const player = await Player.findOne({ id: userid });
+    const timeline = await Timeline.findOne({ playerId: userid });
 
     if (!player) return null;
 
@@ -107,15 +130,32 @@ class TrickorTreat {
       player.treats = 0;
     }
 
-    player.save();
+    const tEvent = {
+      candyNum: amount,
+      time: moment().utc().format(),
+      eventType: "lost",
+    };
+
+    timeline.events.push(tEvent);
+
+    await timeline.save();
+
+    await player.save();
 
     return amount;
   }
 
   static async setCandy(amount, userid, candyloss = false) {
     const player = await Player.findOne({ id: userid });
+    const timeline = await Timeline.findOne({ playerId: userid });
 
     if (!player) return null;
+
+    const tEvent = {
+      candyNum: amount,
+      time: moment().utc().format(),
+      eventType: "lost",
+    };
 
     if (candyloss) {
       player.candylost = player.treats;
@@ -125,15 +165,26 @@ class TrickorTreat {
     player.treats = amount;
     player.latestAttempt = moment().utc().format();
 
-    player.save();
+    timeline.events.push(tEvent);
+
+    await timeline.save();
+
+    await player.save();
 
     return amount;
   }
 
   static async playerLOSS(id) {
     const player = await Player.findOne({ id: id });
+    const timeline = await Timeline.findOne({ playerId: id });
 
     if (!player) return null;
+
+    const tEvent = {
+      candyNum: player.treats,
+      time: moment().utc().format(),
+      eventType: "died",
+    };
 
     player.candylost = player.candylost + player.treats;
     player.treats = 0;
@@ -141,10 +192,12 @@ class TrickorTreat {
     player.lost = true;
     player.latestAttempt = moment().utc().format();
 
-    player.save();
+    timeline.events.push(tEvent);
+
+    await timeline.save();
+
+    await player.save();
 
     return player;
   }
 }
-
-module.exports = TrickorTreat;

@@ -2,27 +2,32 @@
   "name": "trickster",
   "version": "1.0.0",
   "description": "Trick or Treat?",
-  "main": "index.js",
+  "main": "build/index.js",
+  "source": "src/index.js",
+  "type": "module",
   "scripts": {
-    "test": "node index.js"
+    "test": "node index.js",
+    "watch": "parcel watch",
+    "build": "parcel build"
   },
   "keywords": [
-    "discordjs",
+    "guilded",
     "bot",
     "js",
     "javascript",
-    "discordbot",
+    "guildedbot",
     "trickortreat",
     "halloween"
   ],
   "author": "saysora",
   "license": "ISC",
   "dependencies": {
-    "@discordjs/rest": "^0.1.0-canary.0",
-    "discord-api-types": "^0.23.1",
-    "discord.js": "^13.1.0",
-    "dotenv": "^10.0.0",
-    "moment": "^2.29.1",
-    "mongoose": "^6.0.7"
+    "axios": "^0.27.2",
+    "moment": "^2.29.4",
+    "mongoose": "^6.6.0",
+    "ws": "^8.8.1"
+  },
+  "devDependencies": {
+    "parcel": "^2.7.0"
   }
 }

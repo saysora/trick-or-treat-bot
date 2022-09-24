@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const StorySchema = new mongoose.Schema({
   id: {
@@ -9,4 +9,6 @@ const StorySchema = new mongoose.Schema({
   category: String,
 });
 
-module.exports = new mongoose.model("Story", StorySchema);
+const Story = new mongoose.model("Story", StorySchema);
+
+export default Story;
