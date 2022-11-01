@@ -605,6 +605,69 @@ client.on("ChatMessageCreated", async (data) => {
     });
   }
 
+  if (message.content == "!promptcats") {
+    const embed = {
+      title: `Prompt categories`,
+      description: "Here are the different available categories.",
+      color: constants.base,
+      fields: [],
+    };
+    const categories = await Storyteller.getCategories();
+
+    const catAndNum = await Promise.all(
+      categories.map(async (cat) => {
+        const num = await Storyteller.countStories(cat);
+        return {
+          name: cat,
+          num,
+        };
+      })
+    );
+
+    for (const cat of catAndNum) {
+      embed.fields.push({
+        name: `${cat.name}`,
+        value: `${cat.num}`,
+        inline: true,
+      });
+    }
+
+    return await sendMsg(message.channelId, {
+      embeds: [embed],
+    });
+  }
+  if (message.content.startsWith("!randomprompt ")) {
+    const embed = {
+      title: `Halloween Prompt`,
+    };
+
+    const args = message.content.split(`!randomprompt `);
+    args.shift();
+
+    const theStory = await Storyteller.randomStoryByCat(
+      args[0].toLowerCase().trim()
+    );
+
+    if (!theStory) {
+      embed.title = "Category does not exist";
+      embed.color = constants.loss;
+      embed.description = "Please try again using the proper category";
+      return await sendMsg(message.channelId, {
+        embeds: [embed],
+      });
+    }
+
+    embed.title = `Halloween Prompt - ${args[0].toLowerCase().trim()}`;
+    embed.description = theStory.content;
+    embed.footer = {
+      text: `Story ID - ${theStory.id}`,
+    };
+
+    return await sendMsg(message.channelId, {
+      embeds: [embed],
+    });
+  }
+
   if (message.content == "!scorecard") {
     const member = await getMember(message.serverId, message.createdBy);
     const embed = {
@@ -651,6 +714,11 @@ client.on("ChatMessageCreated", async (data) => {
       {
         name: "Losses",
         value: `${player.fails}`,
+        inline: true,
+      },
+      {
+        name: "Survived?",
+        value: `${player.lost ? "No" : "Yes"}`,
         inline: true,
       },
     ];
