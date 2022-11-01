@@ -29,6 +29,14 @@ const commandlist = [
   { action: "!trick-or-treat", description: "Attempt to collect candy." },
   { action: "!lb", description: "View the leaderboard" },
   { action: "!scorecard", description: "Find out your final stats" },
+  {
+    action: "!promptcats",
+    description: "List the prompt categories and count",
+  },
+  {
+    action: `!randomprompt <category>`,
+    description: "Provide a category and get a random prompt",
+  },
 ];
 
 // Helper function for candy nums
