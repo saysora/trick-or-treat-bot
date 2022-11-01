@@ -1,4 +1,4 @@
-import { BotClient } from "./guilded/BotClient";
+import { Client } from "./guilded/Client";
 import { Database } from "./classes/Database";
 
 import { TrickorTreat } from "./classes/TrickorTreat";
@@ -9,7 +9,7 @@ import moment from "moment";
 import constants from "./constants";
 import { delMsg, getMember, sendMsg } from "./guilded/Guilded";
 
-const botclient = new BotClient(process.env.TOKEN);
+const client = new Client(process.env.TOKEN);
 
 const prefix = process.env.PREFIX;
 const botowner = process.env.BOT_OWNER_ID;
@@ -28,6 +28,7 @@ const commandlist = [
   { action: "!bag", description: "View how much candy you've collected." },
   { action: "!trick-or-treat", description: "Attempt to collect candy." },
   { action: "!lb", description: "View the leaderboard" },
+  { action: "!scorecard", description: "Find out your final stats" },
 ];
 
 // Helper function for candy nums
@@ -44,17 +45,18 @@ const cooldowntime = {
   unit: process.env.COOLDOWN_UNIT ?? "h",
 };
 
-let client = botclient.emitter;
+const db = new Database();
 
 /* The normal stuff */
 
 client.on("open", async () => {
   console.log("connected to Guilded!");
-  new Database();
+  db.connect();
 });
 
 client.on("close", async () => {
-  botclient.reconnect();
+  client.reconnect();
+  db.disconnect();
 });
 
 // All our commands
@@ -600,6 +602,61 @@ client.on("ChatMessageCreated", async (data) => {
       embeds: [embed],
       isPrivate: true,
       replyMessageIds: [message.id],
+    });
+  }
+
+  if (message.content == "!scorecard") {
+    const member = await getMember(message.serverId, message.createdBy);
+    const embed = {
+      title: `<@${message.createdBy}>'s Score Card`,
+      thumbnail: {
+        url: member.user.avatar ?? null,
+      },
+      color: constants.base,
+      description: "Thanks for playing!\n\nHere are your final results:",
+    };
+
+    const player = await TrickorTreat.getPlayer(message.createdBy);
+
+    if (!player) {
+      return;
+    }
+
+    embed.fields = [
+      {
+        name: "Final Count",
+        value: `${player.treats}`,
+        inline: true,
+      },
+      {
+        name: "Total Collected",
+        value: `${player.treats + player.candylost}`,
+        inline: true,
+      },
+      {
+        name: "Total Lost",
+        value: `${player.candylost}`,
+        inline: true,
+      },
+      {
+        name: "Total Attempts",
+        value: `${player.attempts}`,
+        inline: true,
+      },
+      {
+        name: "Wins",
+        value: `${player.attempts - player.fails}`,
+        inline: true,
+      },
+      {
+        name: "Losses",
+        value: `${player.fails}`,
+        inline: true,
+      },
+    ];
+
+    return await sendMsg(message.channelId, {
+      embeds: [embed],
     });
   }
 

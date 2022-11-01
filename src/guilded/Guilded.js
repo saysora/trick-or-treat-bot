@@ -91,6 +91,7 @@ export default class Guilded {
         `${this.api}${this.types.channels}/${channel}/messages`,
         message
       );
+      return response.data;
     } catch (e) {
       response = e;
       console.error(JSON.stringify(e.response.data, null, 2));
@@ -112,7 +113,7 @@ export default class Guilded {
       );
       return response.data;
     } catch (e) {
-      resonse = e;
+      response = e;
       console.error(JSON.stringify(e.response.data, null, 2));
     }
 
@@ -120,6 +121,49 @@ export default class Guilded {
       const retryTime = parseInt(response.headers["Retry-After"]);
       await sleep(retryTime * 1000);
       return this.delMsg(channel, message);
+    }
+  };
+
+  static updateMsg = async (channel, messageId, message = {}) => {
+    let response;
+    try {
+      response = await PUT(
+        `${this.api}${this.types.channels}/${channel}/messages/${messageId}`,
+        message
+      );
+      return response.data;
+    } catch (e) {
+      response = e;
+      console.error(JSON.stringify(e.response.data, null, 2));
+    }
+
+    if (response.status === 429) {
+      const retryTime = parseInt(response.headers["Retry-After"]);
+      await sleep(retryTime * 1000);
+      return this.updateMsg(channel, messageId, message);
+    }
+  };
+
+  /* Reactions */
+
+  static addReaction = async (channel, message, reactionId) => {
+    let response;
+
+    try {
+      response = await PUT(
+        `${this.api}${this.types.channels}/${channel}/content/${message}/emotes/${reactionId}`
+      );
+
+      return response.data;
+    } catch (e) {
+      response = e;
+      console.error(JSON.stringify(e.response.data, null, 2));
+    }
+
+    if (response.status === 429) {
+      const retryTime = parseInt(response.headers["Retry-After"]);
+      await sleep(retryTime * 1000);
+      return this.addReaction(channel, message, reactionId);
     }
   };
 
@@ -176,7 +220,7 @@ export default class Guilded {
           note,
         }
       );
-      return response;
+      return response.data;
     } catch (e) {
       response = e;
       console.error(JSON.stringify(e.response.data, null, 2));
@@ -242,16 +286,38 @@ export default class Guilded {
       return this.banMember(serverId, userId, reason);
     }
   };
+
+  static kickMember = async (serverId, userId) => {
+    let response;
+    try {
+      response = await DELETE(
+        `${this.api}/servers/${serverId}/members/${userId}`
+      );
+      return response.data;
+    } catch (e) {
+      response = e;
+      console.error(JSON.stringify(e.response.data, null, 2));
+    }
+
+    if (response.status === 429) {
+      const retryTime = parseInt(response.headers["Retry-After"]);
+      await sleep(retryTime * 1000);
+      return this.kickMember(serverId, userId);
+    }
+  };
 }
 
 export const getMsg = Guilded.getMsg;
 export const getMsgs = Guilded.getMsgs;
 export const sendMsg = Guilded.sendMsg;
+export const updateMsg = Guilded.updateMsg;
 export const delMsg = Guilded.delMsg;
+export const addReaction = Guilded.addReaction;
 export const getMember = Guilded.getMember;
 export const addRole = Guilded.addRole;
 export const addListItem = Guilded.addListItem;
 export const getChannel = Guilded.getChannel;
 export const getServer = Guilded.getServer;
 export const banMember = Guilded.banMember;
+export const kickMember = Guilded.kickMember;
 export const testTimeout = Guilded.testTimeout;

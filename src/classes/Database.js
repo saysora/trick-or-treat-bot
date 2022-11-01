@@ -13,7 +13,6 @@ export class Database {
 
   constructor() {
     this.db = mongoose.connection;
-    this.connect();
   }
 
   connect() {
@@ -28,7 +27,16 @@ export class Database {
 
     db.on("error", console.error.bind("Connection error:"));
     db.once("open", () => {
-      console.log(`Connected to ${mongodb}`);
+      console.log("Connected to Mog DB");
     });
+  }
+
+  disconnect() {
+    this.db.close();
+  }
+
+  reconnect() {
+    this.db.close();
+    this.connect();
   }
 }

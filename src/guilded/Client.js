@@ -1,14 +1,19 @@
 import { WebSocket } from "ws";
 import { EventEmitter } from "events";
-export class BotClient {
+export class Client {
   reconnectTimer = null;
   token;
   socket;
   emitter = new EventEmitter();
+  mCollector = new Map();
 
   constructor(token) {
     this.token = token;
     this.connect();
+  }
+
+  on(event, data) {
+    return this.emitter.on(event, data);
   }
 
   connect() {
@@ -28,8 +33,8 @@ export class BotClient {
       this.emitter.emit(eventType, payload);
     });
 
-    this.socket.on("close", () => {
-      this.emitter.emit("close");
+    this.socket.on("close", (data) => {
+      this.emitter.emit("close", JSON.parse(data));
     });
   }
 
