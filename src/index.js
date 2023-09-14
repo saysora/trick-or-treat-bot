@@ -1,15 +1,13 @@
-import { Client } from "./guilded/Client";
+import { Client } from 'gilapi';
 import { Database } from "./classes/Database";
 
 import { TrickorTreat } from "./classes/TrickorTreat";
 import { Storyteller } from "./classes/StoryTeller";
-// Prep for Guilded getting
 
 import moment from "moment";
 import constants from "./constants";
-import { delMsg, getMember, sendMsg } from "./guilded/Guilded";
 
-const client = new Client(process.env.TOKEN);
+const { client, gilapi: gapi } = new Client(process.env.TOKEN);
 
 const prefix = process.env.PREFIX;
 const botowner = process.env.BOT_OWNER_ID;
@@ -26,7 +24,7 @@ const commandlist = [
     description: "Use First. Starts trick or treating.",
   },
   { action: "!bag", description: "View how much candy you've collected." },
-  { action: "!trick-or-treat", description: "Attempt to collect candy." },
+  { action: "!trick-or-treat OR !tot", description: "Attempt to collect candy." },
   { action: "!lb", description: "View the leaderboard" },
   { action: "!scorecard", description: "Find out your final stats" },
   {
@@ -39,11 +37,23 @@ const commandlist = [
   },
 ];
 
-// Helper function for candy nums
+/**
+ * Returns a number between two other numbers
+ * @param {number} min
+ * @param {number} max
+ * @returns {number} random number
+ */
 function randomNumBet(min, max) {
   return Math.floor(Math.random() * (max - min + 1) + min);
 }
-// Helper function to paginate our leader board.
+
+/**
+ * Helper function to paginate our leader board.
+ * @param {Array} array
+ * @param {number} pagesize
+ * @param {number} pagenum
+ * @returns {Array} Slice of array
+ */
 const paginate = (array, pagesize, pagenum) => {
   return array.slice((pagenum - 1) * pagesize, pagenum * pagesize);
 };
@@ -81,22 +91,22 @@ client.on("ChatMessageCreated", async (data) => {
     message.content.startsWith("!sayembed")
   ) {
     const args = message.content.split("|").map((piece) => piece.trim());
-    await delMsg(message.channelId, message.id);
+    await gapi.delMsg(message.channelId, message.id);
     args.shift();
 
-    if (!args.length == 2) {
+    if (args.length != 2) {
       return;
     }
 
-    const { user } = await getMember(serverId, process.env.BOTUSERID);
+    const { member } = await gapi.getMember(serverId, process.env.BOTUSERID);
 
-    const { avatar } = user;
+    const { avatar } = member.user;
 
     const embed = {
       // title: "Surely this can't be ALL the candy, kupo!",
       color: constants.base,
       author: {
-        name: user.name,
+        name: member.user.name,
       },
       thumbnail: {
         url: avatar ?? "https://i.imgur.com/GbA4vQk.png",
@@ -104,36 +114,36 @@ client.on("ChatMessageCreated", async (data) => {
       description: `\n${args[1]}\n\n`,
     };
 
-    return await sendMsg(args[0], {
+    return await gapi.sendMsg(args[0], {
       embeds: [embed],
     });
   }
 
   if (message.createdBy == botowner && message.content.startsWith("!say")) {
     const args = message.content.split("|").map((piece) => piece.trim());
-    await delMsg(message.channelId, message.id);
+    await gapi.delMsg(message.channelId, message.id);
     args.shift();
 
-    if (!args.length == 2) {
+    if (args.length != 2) {
       return;
     }
 
-    return await sendMsg(args[0], {
+    return await gapi.sendMsg(args[0], {
       content: `${args[1]}`,
     });
   }
 
   if (message.content == "!lore" && message.createdBy == botowner) {
-    const { user } = await getMember(serverId, process.env.BOTUSERID);
+    const { member: bot } = await gapi.getMember(serverId, process.env.BOTUSERID);
 
-    const { avatar } = user;
+    const { avatar } = bot.user;
 
-    await delMsg(message.channelId, message.id);
+    await gapi.delMsg(message.channelId, message.id);
     const embed = {
       title: "Surely this can't be ALL the candy, kupo!",
       color: constants.base,
       author: {
-        name: user.name,
+        name: bot.user.name,
       },
       thumbnail: {
         url: avatar ?? "https://i.imgur.com/GbA4vQk.png",
@@ -162,8 +172,8 @@ client.on("ChatMessageCreated", async (data) => {
       However, you must collect it all before **midnight** on ${moment(
         process.env.ENDTIME
       )
-        .subtract(1, "d")
-        .format("MMMM DD")}, kupo!
+          .subtract(1, "d")
+          .format("MMMM DD")}, kupo!
       `,
     };
 
@@ -171,7 +181,7 @@ client.on("ChatMessageCreated", async (data) => {
       title: "How to collect candy, kupo!",
       color: constants.base,
       author: {
-        name: user.name,
+        name: bot.user.name,
       },
       thumbnail: {
         url: avatar ?? "https://i.imgur.com/GbA4vQk.png",
@@ -179,11 +189,10 @@ client.on("ChatMessageCreated", async (data) => {
       description: `
       I think you call it... trick or treating, kupo?
 
-      1. You can only **!trick-or-treat** command once every ${
-        process.env.COOLDOWN_ENABLED
+      1. You can only **!trick-or-treat** command once every ${process.env.COOLDOWN_ENABLED
           ? `**${cooldowntime.int}${cooldowntime.unit}**`
           : ""
-      } since you last used it, kupo.
+        } since you last used it, kupo.
       
       2. If you're ever confused, type **!help** kupo!
       
@@ -194,11 +203,8 @@ client.on("ChatMessageCreated", async (data) => {
       },
     };
 
-    await sendMsg(message.channelId, {
-      embeds: [embed],
-    });
-    return await sendMsg(message.channelId, {
-      embeds: [embed2],
+    await gapi.sendMsg(message.channelId, {
+      embeds: [embed, embed2],
     });
   }
 
@@ -215,11 +221,11 @@ client.on("ChatMessageCreated", async (data) => {
       description: "",
     };
 
-    cats.forEach((cat, index) => {
+    cats.forEach((cat) => {
       embed.description += `${cat}\n`;
     });
 
-    return await sendMsg(message.channelId, { embeds: [embed] });
+    return await gapi.sendMsg(message.channelId, { embeds: [embed] });
   }
 
   // Add story
@@ -229,7 +235,7 @@ client.on("ChatMessageCreated", async (data) => {
   ) {
     const args = message.content.split("|").map((piece) => piece.trim());
     args.shift();
-    if (!args.length == 2) {
+    if (args.length != 2) {
       return;
     }
     const category = args[0].toLowerCase();
@@ -247,7 +253,7 @@ client.on("ChatMessageCreated", async (data) => {
     const newstory = await Storyteller.addStory(category, story);
 
     if (!newstory) {
-      sendMsg(message.channelId, `Something went wrong adding that story.`, {
+      await gapi.sendMsg(message.channelId, `Something went wrong adding that story.`, {
         replyMessageIds: [message.id],
         isPrivate: true,
       });
@@ -266,7 +272,7 @@ client.on("ChatMessageCreated", async (data) => {
       text: "Story ID: " + newstory.id,
     };
 
-    return await sendMsg(message.channelId, {
+    return await gapi.sendMsg(message.channelId, {
       embeds: [embed],
       isPrivate: true,
       replyMessageIds: [message.id],
@@ -278,11 +284,15 @@ client.on("ChatMessageCreated", async (data) => {
     message.content.startsWith("!editstory") &&
     message.createdBy == botowner
   ) {
+
     const args = message.content.split("|").map((piece) => piece.trim());
+
     args.shift();
-    if (!args.length == 2) {
+
+    if (args.length != 2) {
       return;
     }
+
     const id = args[0].toLowerCase();
     const story = args[1];
 
@@ -290,40 +300,43 @@ client.on("ChatMessageCreated", async (data) => {
       return;
     }
 
-    const editedstory = await Storyteller.editStoryContent(id, story);
+    try {
+      const editedstory = await Storyteller.editStoryContent(id, story);
 
-    if (!editedstory) {
-      return await sendMsg(message.channelId, {
+      const embed = {
+        color: 0xcc5500,
+        title: "Story edited!",
+        description: editedstory.content,
+        fields: [{ name: "Category", value: editedstory.category }],
+        footer: {
+          text: "Story ID: " + editedstory.id,
+        },
+      };
+
+      return await gapi.sendMsg(message.channelId, {
+        embeds: [embed],
+        isPrivate: true,
+        replyMessageIds: [message.id],
+      });
+    } catch (e) {
+      console.error(e)
+      return await gapi.sendMsg(message.channelId, {
         content: `Something went wrong adding that story.`,
         replyMessageIds: [message.id],
         isPrivate: true,
       });
     }
-
-    const embed = {
-      color: 0xcc5500,
-      title: "Story edited!",
-      description: editedstory.content,
-      fields: [{ name: "Category", value: editedstory.category }],
-      footer: {
-        text: "Story ID: " + editedstory.id,
-      },
-    };
-
-    return await sendMsg(message.channelId, {
-      embeds: [embed],
-      isPrivate: true,
-      replyMessageIds: [message.id],
-    });
   }
 
   // Edit category
   if (message.content.startsWith("!editcat") && message.createdBy == botowner) {
     const args = message.content.split("|").map((piece) => piece.trim());
     args.shift();
-    if (!args.length == 2) {
+
+    if (args.length != 2) {
       return;
     }
+
     const id = args[0];
     const category = args[1].toLowerCase();
 
@@ -331,31 +344,33 @@ client.on("ChatMessageCreated", async (data) => {
       return;
     }
 
-    const editedcat = await Storyteller.editStoryCategory(id, category);
+    try {
+      const editedcat = await Storyteller.editStoryCategory(id, category);
 
-    if (!editedcat) {
-      return await sendMsg(message.channelId, {
+      const embed = {
+        color: 0xcc5500,
+        title: "Story category edited!",
+        description: editedcat.content,
+        fields: [{ name: "Category", value: editedcat.category }],
+        footer: {
+          text: "Story ID: " + editedcat.id,
+        },
+      };
+
+      return await gapi.sendMsg(message.channelId, {
+        embeds: [embed],
+        isPrivate: true,
+        replyMessageIds: [message.id],
+      });
+    } catch (e) {
+      console.error(e);
+      return await gapi.sendMsg(message.channelId, {
         content: `Something went wrong adding that story.`,
         replyMessageIds: [message.id],
         isPrivate: true,
       });
     }
 
-    const embed = {
-      color: 0xcc5500,
-      title: "Story category edited!",
-      description: editedcat.content,
-      fields: [{ name: "Category", value: editedcat.category }],
-      footer: {
-        text: "Story ID: " + editedcat.id,
-      },
-    };
-
-    return await sendMsg(message.channelId, {
-      embeds: [embed],
-      isPrivate: true,
-      replyMessageIds: [message.id],
-    });
   }
 
   // Delete story
@@ -364,58 +379,54 @@ client.on("ChatMessageCreated", async (data) => {
     message.createdBy == botowner
   ) {
     const args = message.content.split("|").map((piece) => piece.trim());
+
     args.shift();
-    if (!args.length == 2) {
+
+    if (args.length != 2) {
       return;
     }
+
     const id = args[0];
-    // const category = args[1].toLowerCase();
 
     if (!id) {
       return;
     }
 
-    const story = await Storyteller.getStory(id);
+    try {
+      const story = await Storyteller.getStory(id);
 
-    if (!story) {
-      sendMsg(message.channelId, `Something went wrong adding that story.`, {
+      const embed = {
+        color: constants.base,
+        title: "Story Deleted",
+        description: story.content,
+        fields: [
+          {
+            name: "Category",
+            value: `${story.category}`,
+          },
+          {
+            name: "ID",
+            value: `${story.id}`,
+          },
+        ],
+      };
+
+      const delstory = await Storyteller.deleteStory(id);
+
+      return await gapi.sendMsg(message.channelId, {
+        embeds: [embed],
+        isPrivate: true,
+        replyMessageIds: [message.id],
+      });
+    } catch (e) {
+      console.error(e);
+      return await gapi.sendMsg(message.channelId, {
+        content: `Something went wrong deleting that story.`,
         replyMessageIds: [message.id],
         isPrivate: true,
       });
-      return;
     }
 
-    const embed = {
-      color: constants.base,
-      title: "Story Deleted",
-      description: story.content,
-      fields: [
-        {
-          name: "Category",
-          value: `${story.category}`,
-        },
-        {
-          name: "ID",
-          value: `${story.id}`,
-        },
-      ],
-    };
-
-    const delstory = await Storyteller.deleteStory(id);
-
-    if (!delstory) {
-      return await sendMsg(message.channelId, {
-        content: `Something went wrong adding that story.`,
-        replyMessageIds: [message.id],
-        isPrivate: true,
-      });
-    }
-
-    return await sendMsg(message.channelId, {
-      embeds: [embed],
-      isPrivate: true,
-      replyMessageIds: [message.id],
-    });
   }
 
   // Tell story
@@ -424,48 +435,50 @@ client.on("ChatMessageCreated", async (data) => {
     message.createdBy == botowner
   ) {
     const args = message.content.split("|").map((piece) => piece.trim());
+
     args.shift();
-    if (!args.length == 2) {
+
+    if (args.length != 2) {
       return;
     }
+
     const id = args[0];
-    // const category = args[1].toLowerCase();
 
     if (!id) {
       return;
     }
+    try {
+      const story = await Storyteller.getStory(id);
 
-    const story = await Storyteller.getStory(id);
+      const embed = {
+        color: constants.base,
+        title: "Story",
+        description: story.content,
+        fields: [
+          {
+            name: "Category",
+            value: `${story.category}`,
+          },
+          {
+            name: "ID",
+            value: `${story.id}`,
+          },
+        ],
+      };
 
-    if (!story) {
-      return await sendMsg(message.channelId, {
+      return await gapi.sendMsg(message.channelId, {
+        embeds: [embed],
+        isPrivate: true,
+        replyMessageIds: [message.id],
+      });
+    } catch (e) {
+      console.error(e);
+      return await gapi.sendMsg(message.channelId, {
         content: `Something went wrong adding that story.`,
         replyMessageIds: [message.id],
         isPrivate: true,
       });
     }
-
-    const embed = {
-      color: constants.base,
-      title: "Story",
-      description: story.content,
-      fields: [
-        {
-          name: "Category",
-          value: `${story.category}`,
-        },
-        {
-          name: "ID",
-          value: `${story.id}`,
-        },
-      ],
-    };
-
-    return await sendMsg(message.channelId, {
-      embeds: [embed],
-      isPrivate: true,
-      replyMessageIds: [message.id],
-    });
   }
 
   // Code to force game to be in Moogle Cafe
@@ -475,7 +488,7 @@ client.on("ChatMessageCreated", async (data) => {
     serverId !== gameserver &&
     commandlist.some((cmd) => message.content.startsWith(cmd.action))
   ) {
-    return await sendMsg(message.channelId, {
+    return await gapi.sendMsg(message.channelId, {
       content: `The only place to play is in the Moogle Cafe! Consider joining today!\n https://www.guilded.gg/i/27dPwKwk`,
     });
   }
@@ -501,7 +514,7 @@ client.on("ChatMessageCreated", async (data) => {
         .join("\n\n")}`,
     };
 
-    return await sendMsg(message.channelId, {
+    return await gapi.sendMsg(message.channelId, {
       embeds: [embed],
       isPrivate: true,
       replyMessageIds: [message.id],
@@ -528,20 +541,21 @@ client.on("ChatMessageCreated", async (data) => {
       embed.footer = {
         text: null,
       };
-      return await sendMsg(message.channelId, {
+
+      return await gapi.sendMsg(message.channelId, {
         embeds: [embed],
       });
     }
 
     if (!player) {
-      return await sendMsg(message.channelId, {
+      return await gapi.sendMsg(message.channelId, {
         content: "You already went out.",
         replyMessageIds: [message.id],
         isPrivate: true,
       });
     }
 
-    return await sendMsg(message.channelId, {
+    return await gapi.sendMsg(message.channelId, {
       embeds: [embed],
       isPrivate: true,
       replyMessageIds: [message.id],
@@ -554,7 +568,7 @@ client.on("ChatMessageCreated", async (data) => {
 
     // If we cannot find that player we invite them to play.
     if (!player) {
-      return await sendMsg(message.channelId, {
+      return await gapi.sendMsg(message.channelId, {
         content: `You need to go out first`,
         replyMessageIds: [message.id],
         isPrivate: true,
@@ -564,13 +578,12 @@ client.on("ChatMessageCreated", async (data) => {
     const embed = {
       title: `Your bag`,
       color: 0xcc5500,
-      description: `What delightful sweets might there be inside this bag?\n\n**STATUS: ${
-        player.lost == false && player.attempts < 50
-          ? "YOU ARE ALIVE"
-          : player.lost == false && player.attempts > 50
+      description: `What delightful sweets might there be inside this bag?\n\n**STATUS: ${player.lost == false && player.attempts < 50
+        ? "YOU ARE ALIVE"
+        : player.lost == false && player.attempts > 50
           ? "YOU ARE STILL ALIVE"
           : ":skull:"
-      }**\n\n:candy: **${player.treats}**`,
+        }**\n\n:candy: **${player.treats}**`,
     };
 
     if (
@@ -606,7 +619,7 @@ client.on("ChatMessageCreated", async (data) => {
       };
     }
 
-    return await sendMsg(message.channelId, {
+    return await gapi.sendMsg(message.channelId, {
       embeds: [embed],
       isPrivate: true,
       replyMessageIds: [message.id],
@@ -640,7 +653,7 @@ client.on("ChatMessageCreated", async (data) => {
       });
     }
 
-    return await sendMsg(message.channelId, {
+    return await gapi.sendMsg(message.channelId, {
       embeds: [embed],
     });
   }
@@ -660,7 +673,7 @@ client.on("ChatMessageCreated", async (data) => {
       embed.title = "Category does not exist";
       embed.color = constants.loss;
       embed.description = "Please try again using the proper category";
-      return await sendMsg(message.channelId, {
+      return await gapi.sendMsg(message.channelId, {
         embeds: [embed],
       });
     }
@@ -671,13 +684,16 @@ client.on("ChatMessageCreated", async (data) => {
       text: `Story ID - ${theStory.id}`,
     };
 
-    return await sendMsg(message.channelId, {
+    return await gapi.sendMsg(message.channelId, {
       embeds: [embed],
     });
   }
 
   if (message.content == "!scorecard") {
-    const member = await getMember(message.serverId, message.createdBy);
+    if (moment().isSameOrBefore(moment(process.env.ENDTIME))) return;
+
+    const { member } = await gapi.getMember(message.serverId, message.createdBy);
+
     const embed = {
       title: `<@${message.createdBy}>'s Score Card`,
       thumbnail: {
@@ -731,12 +747,12 @@ client.on("ChatMessageCreated", async (data) => {
       },
     ];
 
-    return await sendMsg(message.channelId, {
+    return await gapi.sendMsg(message.channelId, {
       embeds: [embed],
     });
   }
 
-  if (message.content == "!trick-or-treat") {
+  if (message.content == "!trick-or-treat" || message.content == "!tot") {
     const embed = {
       title: "Trick or Treat",
       color: constants.base,
@@ -747,7 +763,7 @@ client.on("ChatMessageCreated", async (data) => {
       embed.title = "Halloween is over.";
       embed.description =
         "You can no longer Trick or Treat.\nBut I'll see you next year...";
-      return await sendMsg(message.channelId, {
+      return await gapi.sendMsg(message.channelId, {
         embeds: [embed],
       });
     }
@@ -758,7 +774,7 @@ client.on("ChatMessageCreated", async (data) => {
     const you = await TrickorTreat.getPlayer(message.createdBy);
 
     if (!you) {
-      return await sendMsg(message.channelId, {
+      return await gapi.sendMsg(message.channelId, {
         content: `You need to go out first (use the !go-out command)`,
       });
     }
@@ -770,7 +786,7 @@ client.on("ChatMessageCreated", async (data) => {
         text: `Died at ${new Date(you.latestAttempt).toLocaleString()}`,
       };
 
-      return await sendMsg(message.channelId, {
+      return await gapi.sendMsg(message.channelId, {
         embeds: [embed],
         replyMessageIds: [message.id],
         isPrivate: true,
@@ -795,18 +811,17 @@ client.on("ChatMessageCreated", async (data) => {
       } else if (you.attempts == 0) {
         // Also don't fire here.
       } else {
-        (embed.description = `Oh aren't we eager, <@${
-          message.createdBy
-        }>? \nToo bad.\nYou must wait **${moment(you.latestAttempt)
-          .add(cooldowntime.int, cooldowntime.unit)
-          .from(moment(), true)}** before you can trick or treat again...`),
+        (embed.description = `Oh aren't we eager, <@${message.createdBy
+          }>? \nToo bad.\nYou must wait **${moment(you.latestAttempt)
+            .add(cooldowntime.int, cooldowntime.unit)
+            .from(moment(), true)}** before you can trick or treat again...`),
           (embed.footer = {
             text: `You have ${you.treats} 🍬 • you can also check your bag to see when you can trick or treat again`,
           });
 
-        await delMsg(message.channelId, message.id);
+        await gapi.delMsg(message.channelId, message.id);
 
-        return await sendMsg(message.channelId, {
+        return await gapi.sendMsg(message.channelId, {
           embeds: [embed],
           isPrivate: true,
         });
@@ -828,24 +843,23 @@ client.on("ChatMessageCreated", async (data) => {
 
       // Generic fallback if fails
       if (!randomwin) {
-        randomwin = "Wow you got <AMOUNT>!";
+        randomwin = `Wow you got ${candystring.toUpperCase()}!`;
+      } else {
+        // Update our strings to remove the amount
+        randomwin = randomwin.content.replace(
+          "<AMOUNT>",
+          `${candystring.toUpperCase()}`
+        );
       }
-
-      // Update our strings to remove the amount
-      randomwin = randomwin.content.replace(
-        "<AMOUNT>",
-        `${candystring.toUpperCase()}`
-      );
 
       embed.color = constants.win;
       embed.description = `${randomwin}`;
       embed.footer = {
-        text: `You now have ${
-          you.treats + candynum < 0 ? 0 : you.treats + candynum
-        } 🍬`,
+        text: `You now have ${you.treats + candynum < 0 ? 0 : you.treats + candynum
+          } 🍬`,
       };
 
-      return await sendMsg(message.channelId, {
+      return await gapi.sendMsg(message.channelId, {
         embeds: [embed],
         replyMessageIds: [message.id],
       });
@@ -881,7 +895,7 @@ client.on("ChatMessageCreated", async (data) => {
           text: `You now have ${you.treats} 🍬`,
         };
 
-        return await sendMsg(message.channelId, {
+        return await gapi.sendMsg(message.channelId, {
           embeds: [embed],
           replyMessageIds: [message.id],
         });
@@ -922,12 +936,11 @@ client.on("ChatMessageCreated", async (data) => {
 
       embed.description = `${randomwin}`;
       embed.footer = {
-        text: `You now have ${
-          you.treats + candynum < 0 ? 0 : you.treats + candynum
-        } 🍬`,
+        text: `You now have ${you.treats + candynum < 0 ? 0 : you.treats + candynum
+          } 🍬`,
       };
 
-      return await sendMsg(message.channelId, {
+      return await gapi.sendMsg(message.channelId, {
         embeds: [embed],
         replyMessageIds: [message.id],
       });
@@ -963,12 +976,11 @@ client.on("ChatMessageCreated", async (data) => {
       embed.color = constants.loss;
       embed.description = `${randomloss}`;
       embed.footer = {
-        text: `You now have ${
-          you.treats - candynum < 0 ? 0 : you.treats - candynum
-        } 🍬`,
+        text: `You now have ${you.treats - candynum < 0 ? 0 : you.treats - candynum
+          } 🍬`,
       };
 
-      return await sendMsg(message.channelId, {
+      return await gapi.sendMsg(message.channelId, {
         embeds: [embed],
         replyMessageIds: [message.id],
       });
@@ -996,7 +1008,7 @@ client.on("ChatMessageCreated", async (data) => {
         text: `You now have 0 🍬`,
       };
 
-      return await sendMsg(message.channelId, {
+      return await gapi.sendMsg(message.channelId, {
         embeds: [embed],
         replyMessageIds: [message.id],
       });
@@ -1030,7 +1042,7 @@ client.on("ChatMessageCreated", async (data) => {
         text: `You are DEAD.`,
       };
 
-      return await sendMsg(message.channelId, {
+      return await gapi.sendMsg(message.channelId, {
         embeds: [embed],
         replyMessageIds: [message.id],
       });
@@ -1047,7 +1059,7 @@ client.on("ChatMessageCreated", async (data) => {
     args.shift();
 
     if (args.length > 0 && isNaN(parseInt(args[0]))) {
-      return await sendMsg(message.channelId, {
+      return await gapi.sendMsg(message.channelId, {
         content: "The page must be a number",
         isPrivate: true,
         replyMessageIds: [message.id],
@@ -1106,12 +1118,11 @@ client.on("ChatMessageCreated", async (data) => {
     // We update the embed description field based on the players on that page and assign their number to the left
     boardpage.forEach((daddy, index) => {
       var betterindex = page > 1 ? index + 10 * (page - 1) + 1 : index + 1;
-      embed.description += `**${betterindex}.** <@${daddy.id}> - ${
-        daddy.lost == false ? daddy.treats + " :candy:" : ":skull:"
-      }\n`;
+      embed.description += `**${betterindex}.** <@${daddy.id}> - ${daddy.lost == false ? daddy.treats + " :candy:" : ":skull:"
+        }\n`;
     });
 
-    return await sendMsg(message.channelId, {
+    return await gapi.sendMsg(message.channelId, {
       embeds: [embed],
       isSilent: true,
     });
