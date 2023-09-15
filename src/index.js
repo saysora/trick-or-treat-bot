@@ -9,7 +9,6 @@ import constants from "./constants";
 
 const { client, gilapi: gapi } = new Client(process.env.TOKEN);
 
-const prefix = process.env.PREFIX;
 const botowner = process.env.BOT_OWNER_ID;
 
 const gameserver = process.env.GAMESERVER ?? null;
@@ -24,7 +23,7 @@ const commandlist = [
     description: "Use First. Starts trick or treating.",
   },
   { action: "!bag", description: "View how much candy you've collected." },
-  { action: "!trick-or-treat OR !tot", description: "Attempt to collect candy." },
+  { action: "!trick-or-treat OR !tot", description: "Collect candy." },
   { action: "!lb", description: "View the leaderboard" },
   { action: "!scorecard", description: "Find out your final stats" },
   {
@@ -411,7 +410,7 @@ client.on("ChatMessageCreated", async (data) => {
         ],
       };
 
-      const delstory = await Storyteller.deleteStory(id);
+      await Storyteller.deleteStory(id);
 
       return await gapi.sendMsg(message.channelId, {
         embeds: [embed],
@@ -489,7 +488,7 @@ client.on("ChatMessageCreated", async (data) => {
     commandlist.some((cmd) => message.content.startsWith(cmd.action))
   ) {
     return await gapi.sendMsg(message.channelId, {
-      content: `The only place to play is in the Moogle Cafe! Consider joining today!\n https://www.guilded.gg/i/27dPwKwk`,
+      content: `The only place to play is in the Moogle Cafe! Consider joining today!\n https://www.guilded.gg/mooglecafe`,
     });
   }
 
@@ -902,7 +901,7 @@ client.on("ChatMessageCreated", async (data) => {
       }
 
       // If the number of candy is greater than 0
-      if (candynum > 1) {
+      if (candynum >= 1) {
         // Update the embed with a new color and set our random win to one of the win stories
         embed.color = constants.barelyWin;
         randomwin = await Storyteller.randomStoryByCat("wins");
