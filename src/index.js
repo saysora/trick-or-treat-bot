@@ -23,9 +23,10 @@ const commandlist = [
     description: "Use First. Starts trick or treating.",
   },
   { action: "!bag", description: "View how much candy you've collected." },
-  { action: "!trick-or-treat OR !tot", description: "Collect candy." },
+  { action: "!trick-or-treat", description: "Collect candy." },
+  { action: "!tot", description: "Same as !trick-or-treat but faster" },
   { action: "!lb", description: "View the leaderboard" },
-  { action: "!scorecard", description: "Find out your final stats" },
+  { action: "!scorecard", description: "Find out your final stats (only available after halloween)" },
   {
     action: "!promptcats",
     description: "List the prompt categories and count",
@@ -148,23 +149,15 @@ client.on("ChatMessageCreated", async (data) => {
         url: avatar ?? "https://i.imgur.com/GbA4vQk.png",
       },
       description: `
-      Halt! Who goes there, kupo?
-
-      Oh, I didn't see you there, kupo.
-
-      What do you mean I look suspicious, kupo!?
-
-      I'm not suspicious in the slightest, kupo!
-
       My name is Mogrid, and I am a moogle, kupo!
 
       You see, I followed my nose and found these delightful sweets, kupo.
 
       I simply must find more of these and take them back to my friends, kupo!
 
-      Hmm... But I don't know where else to look, kupo!
+      Hmm... But I don't know how to go about getting them...
 
-      I know, kupo! You shall help me collect all the sweets, kupo!
+      I know, kupo! You shall collect all the sweets and give them to me, kupo!
 
       I'll reward you handsomly, I assure you, kupo!
 
@@ -188,7 +181,7 @@ client.on("ChatMessageCreated", async (data) => {
       description: `
       I think you call it... trick or treating, kupo?
 
-      1. You can only **!trick-or-treat** command once every ${process.env.COOLDOWN_ENABLED
+      1. You can only **!trick-or-treat** (!tot) command once every ${process.env.COOLDOWN_ENABLED
           ? `**${cooldowntime.int}${cooldowntime.unit}**`
           : ""
         } since you last used it, kupo.
@@ -203,7 +196,11 @@ client.on("ChatMessageCreated", async (data) => {
     };
 
     await gapi.sendMsg(message.channelId, {
-      embeds: [embed, embed2],
+      embeds: [embed],
+    });
+
+    return await gapi.sendMsg(message.channelId, {
+      embeds: [embed2],
     });
   }
 
@@ -303,7 +300,7 @@ client.on("ChatMessageCreated", async (data) => {
       const editedstory = await Storyteller.editStoryContent(id, story);
 
       const embed = {
-        color: 0xcc5500,
+        color: constants.barelyWin,
         title: "Story edited!",
         description: editedstory.content,
         fields: [{ name: "Category", value: editedstory.category }],
@@ -347,7 +344,7 @@ client.on("ChatMessageCreated", async (data) => {
       const editedcat = await Storyteller.editStoryCategory(id, category);
 
       const embed = {
-        color: 0xcc5500,
+        color: constants.barelyWin,
         title: "Story category edited!",
         description: editedcat.content,
         fields: [{ name: "Category", value: editedcat.category }],
@@ -492,9 +489,11 @@ client.on("ChatMessageCreated", async (data) => {
     });
   }
 
+  console.log(gamechannel, message.channelId)
+
   if (
     gamechannel &&
-    gamechannel !== message.channelId &&
+    gamechannel != message.channelId &&
     commandlist.some((cmd) => message.content.startsWith(cmd.action))
   ) {
     return;
@@ -525,8 +524,9 @@ client.on("ChatMessageCreated", async (data) => {
 
     const embed = {
       title: "You leave to trick or treat",
-      color: constants.base,
-      description: `\n🏃‍♀️🏃🏃‍♂️🌲\n\nDo be careful out there...`,
+      color: constants.loss,
+      description: `
+🏠🌲🏠🌲🏠🌲 \n🏃‍♀️  🏃 🏃‍\n🌲🏠🌲🏠🌲🏠\n\nDo be careful out there...`,
       footer: {
         text: `Type !trick-or-treat to collect candy`,
       },
@@ -550,13 +550,12 @@ client.on("ChatMessageCreated", async (data) => {
       return await gapi.sendMsg(message.channelId, {
         content: "You already went out.",
         replyMessageIds: [message.id],
-        isPrivate: true,
+        isPrivate: true
       });
     }
 
     return await gapi.sendMsg(message.channelId, {
       embeds: [embed],
-      isPrivate: true,
       replyMessageIds: [message.id],
     });
   }
@@ -576,7 +575,7 @@ client.on("ChatMessageCreated", async (data) => {
 
     const embed = {
       title: `Your bag`,
-      color: 0xcc5500,
+      color: constants.base,
       description: `What delightful sweets might there be inside this bag?\n\n**STATUS: ${player.lost == false && player.attempts < 50
         ? "YOU ARE ALIVE"
         : player.lost == false && player.attempts > 50
@@ -901,7 +900,7 @@ client.on("ChatMessageCreated", async (data) => {
       }
 
       // If the number of candy is greater than 0
-      if (candynum >= 1) {
+      if (candynum > 1) {
         // Update the embed with a new color and set our random win to one of the win stories
         embed.color = constants.barelyWin;
         randomwin = await Storyteller.randomStoryByCat("wins");
