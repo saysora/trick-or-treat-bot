@@ -1,4 +1,4 @@
-import Story from "../db/Story";
+import Story from "../db/Story.js";
 
 export class Storyteller {
   // Create a story
@@ -63,13 +63,12 @@ export class Storyteller {
 
     if (!count) return null;
 
-    const randomStoryNum = Math.floor(Math.random() * count);
+     const randomStory = await Story.aggregate([
+      {$match: {category}},
+      {$sample: {size: 1}}
+    ]);
 
-    const randomstory = await Story.findOne({ category }).skip(randomStoryNum);
-
-    if (!randomstory) return null;
-
-    return randomstory;
+    return randomStory[0];
   }
 
   static async getCategories() {
@@ -89,23 +88,6 @@ export class Storyteller {
 
     return cats;
   }
-
-  // static async countStoriesByCat() {
-  //   const cats = [];
-
-  //   const stories = await Story.find();
-
-  //   if (!stories) {
-  //     return null;
-  //   }
-
-  //   stories.forEach((story) => {
-  //     if (!cats.includes(story.category)) {
-  //       cats.push(story.category);
-  //     }
-  //   });
-
-  // }
 
   static async countStories(category) {
     const count = await Story.countDocuments({ category });

@@ -1,5 +1,5 @@
-import Player from "../db/Player";
-import Timeline from "../db/Timeline";
+import Player from "../db/Player.js";
+import Timeline from "../db/Timeline.js";
 import moment from "moment";
 // Get Moment JS soonish
 

@@ -1,11 +1,12 @@
-import { Client } from 'gilapi';
-import { Database } from "./classes/Database";
-
-import { TrickorTreat } from "./classes/TrickorTreat";
-import { Storyteller } from "./classes/StoryTeller";
-
+import "dotenv/config";
 import moment from "moment";
-import constants from "./constants";
+import { Client } from 'gilapi';
+import { Database } from "./classes/Database.js";
+
+import { TrickorTreat } from "./classes/TrickorTreat.js";
+import { Storyteller } from "./classes/StoryTeller.js";
+
+import constants from "./constants.js";
 
 const { client, gilapi: gapi } = new Client(process.env.TOKEN);
 
@@ -767,7 +768,6 @@ client.on("ChatMessageCreated", async (data) => {
     }
 
     const chance = Math.floor(Math.random() * 1000);
-
     // Check for the player to ensure we have data on them
     const you = await TrickorTreat.getPlayer(message.createdBy);
 
@@ -827,7 +827,7 @@ client.on("ChatMessageCreated", async (data) => {
     }
 
     // CRITICAL WIN 4-8
-    if (chance > 600) {
+    if (chance >= 600) {
       // Give the user the candy of a random number between 4 and 8
       const candynum = await TrickorTreat.give(randomNumBet(4, 8), you.id);
 
@@ -945,7 +945,7 @@ client.on("ChatMessageCreated", async (data) => {
     }
 
     // Normal losses 1-8
-    if (chance < 200 && chance > 11) {
+    if (chance < 200 && chance >= 11) {
       // We use the take command to ensure we are properly removing a random number between 1 and 8 from users and getting them.
       const candynum = await TrickorTreat.take(randomNumBet(1, 8), you.id);
 
@@ -987,7 +987,7 @@ client.on("ChatMessageCreated", async (data) => {
     // LOSE ALL CANDY
     if (chance > 1 && chance < 11) {
       // We use the setCandy method to just drop the users candy to 0
-      const candynum = await TrickorTreat.setCandy(0, you.id, true);
+      await TrickorTreat.setCandy(0, you.id, true);
 
       // Grab a random lose all story from totalfail
 
@@ -1015,11 +1015,9 @@ client.on("ChatMessageCreated", async (data) => {
     // YOU LOST
     if (chance == 1 || chance == 0) {
       // This ends the game for the players
-      const youlose = await TrickorTreat.playerLOSS(cmd.member.user.id);
+      await TrickorTreat.playerLOSS(you.id);
 
       // We grab a random endgame story
-      // const story =
-      //   YOULOSTTHEGAME[Math.floor(Math.random() * YOULOSTTHEGAME.length)];
 
       let story = await Storyteller.randomStoryByCat("gameover");
 
