@@ -1,0 +1,14 @@
+require('dotenv').config();
+const path = require('path');
+
+let folder = 'src';
+
+if(process.env.NODE_ENV === 'prod') {
+  folder = 'build';
+}
+
+module.exports = {
+  config: path.resolve(folder, 'config', 'dbconfig.js'),
+  'migrations-path': path.resolve(folder, 'migrations')
+};
+
