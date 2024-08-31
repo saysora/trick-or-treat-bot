@@ -1,3 +1,6 @@
+import 'dotenv/config';
+import moment = require('moment');
+
 export enum ColorEnums {
   base = '#FF7518',
   win = '#F6B132',
@@ -18,9 +21,4 @@ export const randomChance = (min: number, max: number) => {
     number: Math.floor(Math.random() * (max - min + 1) + min),
     max,
   };
-};
-
-export const candyPayouts = {
-  min: 4,
-  max: 8,
 };

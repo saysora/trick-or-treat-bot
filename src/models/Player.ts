@@ -1,4 +1,4 @@
-import {Column, Model, PrimaryKey, Table} from 'sequelize-typescript';
+import {Column, DataType, Model, PrimaryKey, Table} from 'sequelize-typescript';
 
 @Table({
   tableName: 'players',
@@ -15,7 +15,9 @@ export default class Player extends Model {
   @Column
   isDead: boolean;
 
-  @Column
+  @Column({
+    type: DataType.DATE,
+  })
   latestAttempt: Date;
 
   // Main player stats

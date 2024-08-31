@@ -7,7 +7,7 @@ module.exports = {
         id VARCHAR PRIMARY KEY,
         "serverId" VARCHAR NOT NULL,
         "isDead" BOOLEAN DEFAULT false,
-        "latestAttempt" TIMESTAMP DEFAULT (now() at time zone 'utc'),
+        "latestAttempt" TIMESTAMP WITH TIME ZONE DEFAULT (now() at time zone 'utc'),
         candy INTEGER DEFAULT 0,
         "gatherAttempts" INTEGER DEFAULT 0,
         "lostCandyCount" INTEGER DEFAULT 0,

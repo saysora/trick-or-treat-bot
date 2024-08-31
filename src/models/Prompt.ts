@@ -2,6 +2,7 @@ import {
   BelongsTo,
   Column,
   ForeignKey,
+  IsUUID,
   Model,
   PrimaryKey,
   Table,
@@ -14,13 +15,12 @@ import PromptCategory from './PromptCategory';
 })
 export default class Prompt extends Model {
   @PrimaryKey
+  @IsUUID(4)
   @Column
   id: string;
 
   @ForeignKey(() => PromptCategory)
-  @Column({
-    field: 'category_id',
-  })
+  @Column
   categoryId: string;
 
   @BelongsTo(() => PromptCategory)

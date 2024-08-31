@@ -12,10 +12,21 @@ import {
   WebhookClient,
 } from 'discord.js';
 import commands from './commands';
-import {ColorEnums, candyPayouts, randomChance} from './constants';
+import {ColorEnums, randomChance} from './constants';
 import Player from './models/Player';
-import StoryTeller from './classes/storyteller';
+import StoryTeller from './classes/StoryTeller';
 import {CategoryName} from './models/PromptCategory';
+import moment = require('moment');
+import PlayerManager from './classes/PlayerManager';
+import Config from './models/Config';
+import ConfigManager from './classes/ConfigManager';
+
+// Services
+const PManager = new PlayerManager(Player);
+const CManager = new ConfigManager(Config);
+
+// Setup
+let configCache: Config;
 
 const DISC_VARS = ['TOKEN', 'CLIENTID', 'WEBHOOK_URL'];
 
@@ -63,34 +74,167 @@ const rest = new REST({version: '10'}).setToken(process.env.TOKEN!);
 
 let botUser: User;
 
+let config: Config;
+
 client.once(Events.ClientReady, async readyClient => {
   botUser = readyClient.user;
   console.info(`Online as ${botUser.tag}`);
   await db.authenticate();
+
+  configCache = await CManager.getConfig();
 });
 
 client.on(Events.InteractionCreate, async interaction => {
-  if (!interaction.isChatInputCommand()) return;
+  if (!interaction.isCommand()) return;
   if (interaction.user.bot) return;
 
   const eventEmbed = new EmbedBuilder().setColor(ColorEnums.base);
 
+  if (interaction.commandName === 'config-get') {
+    await interaction.deferReply({
+      ephemeral: true,
+    });
+
+    eventEmbed.setTitle('Game Config');
+    eventEmbed.setFields([
+      {
+        name: 'Enabled',
+        value: `${configCache.enabled}`,
+      },
+      {
+        name: 'Cooldown Enabled',
+        value: `${configCache.cooldownEnabled}`,
+      },
+      {
+        name: 'Cooldown Time',
+        value: `${configCache.cooldownTime}`,
+      },
+      {
+        name: 'Cooldown Time Unit',
+        value: `${configCache.cooldownUnit}`,
+      },
+      {
+        name: 'Game Start Date ',
+        value: `${configCache.startDate}`,
+      },
+      {
+        name: 'Game End Date',
+        value: `${configCache.endDate}`,
+      },
+    ]);
+
+    await interaction.editReply({
+      embeds: [eventEmbed],
+    });
+
+    return;
+  }
+
+  if (interaction.commandName === 'config-update') {
+    await interaction.deferReply({
+      ephemeral: true,
+    });
+
+    if (
+      !interaction.options.get('item')?.value &&
+      !interaction.options.get('value')?.value
+    ) {
+      eventEmbed.setTitle('Could not update');
+      eventEmbed.setDescription('Could not find item or value');
+      await interaction.editReply({
+        embeds: [eventEmbed],
+      });
+      return;
+    }
+
+    configCache = await CManager.updateConfig({
+      [interaction.options.get('item')?.value as string]:
+        interaction.options.get('value')?.value,
+    });
+
+    eventEmbed.setTitle('Game Config Updated');
+    eventEmbed.setFields([
+      {
+        name: 'Enabled',
+        value: `${configCache.enabled}`,
+      },
+      {
+        name: 'Cooldown Enabled',
+        value: `${configCache.cooldownEnabled}`,
+      },
+      {
+        name: 'Cooldown Time',
+        value: `${configCache.cooldownTime}`,
+      },
+      {
+        name: 'Cooldown Time Unit',
+        value: `${configCache.cooldownUnit}`,
+      },
+      {
+        name: 'Game Start Date ',
+        value: `${configCache.startDate}`,
+      },
+      {
+        name: 'Game End Date',
+        value: `${configCache.endDate}`,
+      },
+    ]);
+
+    await interaction.editReply({
+      embeds: [eventEmbed],
+    });
+
+    return;
+  }
+
   if (interaction.commandName === 'go-out') {
+    if (
+      process.env.GAME_CHANNEL_ID &&
+      interaction.channelId !== process.env.GAME_CHANNEL_ID
+    ) {
+      await interaction.reply({
+        ephemeral: true,
+        content: `You can only trick-or-treat in <#${process.env.GAME_CHANNEL_ID}>`,
+      });
+      return;
+    }
+
+    if (
+      configCache.startDate &&
+      moment.utc().isBefore(moment.utc(configCache.startDate, 'YYYY-MM-DD'))
+    ) {
+      await interaction.reply({
+        ephemeral: true,
+        content: `It's not time to trick or treat yet! You need to wait until ${moment(configCache.startDate, 'YYYY-MM-DD').format('MMMM Do')}`,
+      });
+      return;
+    }
+
+    if (
+      configCache.endDate &&
+      moment.utc().isAfter(moment.utc(configCache.endDate, 'YYYY-MM-DD'))
+    ) {
+      await interaction.reply({
+        ephemeral: true,
+        content: 'It is too late to trick or treat. Halloween is over.',
+      });
+      return;
+    }
+
     await interaction.deferReply();
 
-    const isCurrentPlayer = Player.findByPk(interaction.user.id);
+    const isCurrentPlayer = await PManager.getPlayer(interaction.user.id);
 
     if (!isCurrentPlayer) {
       try {
-        await Player.create({
+        await PManager.createPlayer({
           id: interaction.user.id,
-          serverId: interaction.guildId,
+          serverId: interaction.guildId!,
         });
 
         eventEmbed.setTitle('You leave to trick or treat');
         eventEmbed.setColor(ColorEnums.loss);
         eventEmbed.setDescription(
-          // eslint-disable-next-line
           `🏠🌲🏠🌲🏠🌲 \n🏃‍♀️  🏃 🏃‍\n🌲🏠🌲🏠🌲🏠\n\nDo be careful out there...`
         );
         eventEmbed.setFooter({
@@ -119,10 +263,44 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   if (['trick-or-treat', 'tot'].includes(interaction.commandName)) {
-    //TODO: Insert check for date and if past game date, short circuit return
+    if (
+      process.env.GAME_CHANNEL_ID &&
+      interaction.channelId !== process.env.GAME_CHANNEL_ID
+    ) {
+      await interaction.reply({
+        ephemeral: true,
+        content: `You can only trick-or-treat in <#${process.env.GAME_CHANNEL_ID}>`,
+      });
+      return;
+    }
+
+    if (
+      configCache.startDate &&
+      moment.utc().isBefore(moment.utc(configCache.startDate, 'YYYY-MM-DD'))
+    ) {
+      await interaction.reply({
+        ephemeral: true,
+        content: `It's not time to trick or treat yet! You need to wait until ${moment(configCache.startDate, 'YYYY-MM-DD').format('MMMM Do')}`,
+      });
+      return;
+    }
+
+    if (
+      configCache.endDate &&
+      moment.utc().isAfter(moment.utc(configCache.endDate, 'YYYY-MM-DD'))
+    ) {
+      await interaction.reply({
+        ephemeral: true,
+        content: 'It is too late to trick or treat. Halloween is over.',
+      });
+      return;
+    }
+
     await interaction.deferReply();
 
-    const currentPlayer = await Player.findByPk(interaction.user.id);
+    eventEmbed.setTitle('Trick or Treat');
+
+    const currentPlayer = await PManager.getPlayer(interaction.user.id);
 
     if (!currentPlayer) {
       eventEmbed.setTitle('You are not trick or treating');
@@ -135,99 +313,163 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
-    //TODO: Insert check for cooldown window
+    if (currentPlayer.isDead) {
+      eventEmbed.setTitle('YOU ARE DEAD');
+      eventEmbed.setDescription('You cannot trick or treat anymore');
+      eventEmbed.setFooter({
+        text: `Died at ${new Date(currentPlayer.latestAttempt).toLocaleString()}`,
+      });
+      await interaction.editReply({
+        embeds: [eventEmbed],
+      });
+      return;
+    }
 
-    const chance = randomChance(1, 1000);
-    let candyPayout = 0;
-    switch (true) {
-      // CRITWIN 4 - 8
-      case chance.number >= 600: {
-        candyPayout = randomChance(candyPayouts.min, candyPayouts.max).number;
-        const winStory = await StoryTeller.randPromptByCat(
-          CategoryName.critWin
-        );
-
+    if (configCache.cooldownEnabled) {
+      //if (currentPlayer.gatherAttempts > 0 && moment.utc().isSameOrBefore(moment(currentPlayer.latestAttempt).add(cooldownTime.int, cooldownTime.unit))) {
+      //  eventEmbed.setFooter({
+      //    text: `Time until next trick or treat: ${moment.utc(currentPlayer.latestAttempt).add(cooldownTime.int, cooldownTime.unit).from(moment(), true)}`
+      //  })
+      //}
+      if (
+        currentPlayer.gatherAttempts > 0 &&
+        !moment().isSameOrAfter(
+          moment(currentPlayer.latestAttempt).add(
+            configCache.cooldownTime,
+            configCache.cooldownUnit as moment.unitOfTime.DurationConstructor
+          )
+        )
+      ) {
+        eventEmbed.setTitle('Eager are we?');
         eventEmbed.setDescription(
-          winStory.content.replace(/<AMOUNT>/, `**${candyPayout} CANDIES**`)
-        );
-
-        // TODO: Add in update logs
-
-        break;
-      }
-      // NORM WIN 1 - 3
-      case chance.number >= 200 && chance.number < 600: {
-        candyPayout = randomChance(0, 3).number;
-
-        // FalseWin if candy === 0
-        if (candyPayout === 0) {
-          const falseWinStory = await StoryTeller.randPromptByCat(
-            CategoryName.falseWin
-          );
-          eventEmbed.setDescription(falseWinStory.content);
-          break;
-        }
-
-        // Singular win if candy === 1
-        if (candyPayout === 1) {
-          const singleWinStory = await StoryTeller.randPromptByCat(
-            CategoryName.singularWin
-          );
-          eventEmbed.setDescription(
-            singleWinStory.content.replace(
-              /<AMOUNT>/,
-              `**${candyPayout} CANDY**`
+          `Too bad.\nYou must wait **${moment(currentPlayer.latestAttempt)
+            .add(
+              configCache.cooldownTime,
+              configCache.cooldownUnit as moment.unitOfTime.DurationConstructor
             )
-          );
-
-          break;
-        }
-
-        //Otherwise full win
-        const winStory = await StoryTeller.randPromptByCat(CategoryName.win);
-        eventEmbed.setDescription(
-          winStory.content.replace(/<AMOUNT>/, `**${candyPayout} CANDIES**`)
+            .from(moment(), true)}** before you can trick or treat again...`
         );
-
-        break;
-      }
-      case chance.number >= 11 && chance.number < 200: {
-        candyPayout = randomChance(1, 8).number;
-        const lossStory = await StoryTeller.randPromptByCat(CategoryName.loss);
-        eventEmbed.setDescription(
-          lossStory.content.replace(/<AMOUNT>/, `**${candyPayout} CANDIES**`)
-        );
-        candyPayout *= -1;
-        break;
-      }
-
-      // Lose all candy
-      case chance.number > 1 && chance.number < 11: {
-        const totalLossStory = await StoryTeller.randPromptByCat(
-          CategoryName.totalLoss
-        );
-        eventEmbed.setDescription(totalLossStory.content);
-        break;
-      }
-
-      // Shi ne
-      case chance.number <= 1: {
-        const gameoverStory = await StoryTeller.randPromptByCat(
-          CategoryName.gameover
-        );
-        eventEmbed.setDescription(gameoverStory.content);
-        break;
-      }
-
-      default: {
-        console.log('dunno yet');
+        eventEmbed.setFooter({
+          text: `You have ${currentPlayer.candy} 🍬 • you can also check your bag to see when you can trick or treat again`,
+        });
+        await interaction.editReply({
+          embeds: [eventEmbed],
+        });
+        return;
       }
     }
-    console.log({chance: chance.number, candyPayout});
+
+    const chance = randomChance(1, 1000);
+    const game = await StoryTeller.gamePrompt(chance.number);
+
+    eventEmbed.setColor(game.story.color);
+    eventEmbed.setDescription(game.story.content);
+
+    let updatedPlayer: Player;
+
+    switch (true) {
+      case game.story.category === CategoryName.gameover: {
+        updatedPlayer = await PManager.killPlayer(currentPlayer);
+        eventEmbed.setFooter({
+          text: 'You are DEAD',
+        });
+        break;
+      }
+      case game.story.category === CategoryName.totalLoss: {
+        updatedPlayer = await PManager.playerLoseAllCandy(currentPlayer);
+        eventEmbed.setFooter({
+          text: 'You now have 0 🍬',
+        });
+        break;
+      }
+      default: {
+        if (!game.gain) {
+          updatedPlayer = await PManager.takePlayerCandy(
+            currentPlayer,
+            game.amount
+          );
+        } else {
+          updatedPlayer = await PManager.givePlayerCandy(
+            currentPlayer,
+            game.amount
+          );
+        }
+
+        if (game.amount === 0) {
+          eventEmbed.setFooter({
+            text: `You have ${updatedPlayer.candy} 🍬`,
+          });
+        } else {
+          eventEmbed.setFooter({
+            text: `You now have ${updatedPlayer.candy} 🍬`,
+          });
+        }
+      }
+    }
 
     await interaction.editReply({
       embeds: [eventEmbed],
     });
+    return;
+  }
+
+  if (interaction.commandName === 'backpack') {
+    if (
+      process.env.GAME_CHANNEL_ID &&
+      interaction.channelId !== process.env.GAME_CHANNEL_ID
+    ) {
+      await interaction.reply({
+        ephemeral: true,
+        content: `You can only trick-or-treat in <#${process.env.GAME_CHANNEL_ID}>`,
+      });
+      return;
+    }
+
+    if (
+      configCache.startDate &&
+      moment.utc().isBefore(moment.utc(configCache.startDate, 'YYYY-MM-DD'))
+    ) {
+      await interaction.reply({
+        ephemeral: true,
+        content: `It's not time to trick or treat yet! You need to wait until ${moment(configCache.startDate, 'YYYY-MM-DD').format('MMMM Do')}`,
+      });
+      return;
+    }
+
+    if (
+      configCache.endDate &&
+      moment.utc().isAfter(moment.utc(configCache.endDate, 'YYYY-MM-DD'))
+    ) {
+      await interaction.reply({
+        ephemeral: true,
+        content: 'It is too late to trick or treat. Halloween is over.',
+      });
+      return;
+    }
+  }
+
+  if (['lb', 'leader-board'].includes(interaction.commandName)) {
+    if (
+      process.env.GAME_CHANNEL_ID &&
+      interaction.channelId !== process.env.GAME_CHANNEL_ID
+    ) {
+      await interaction.reply({
+        ephemeral: true,
+        content: `You can only trick-or-treat in <#${process.env.GAME_CHANNEL_ID}>`,
+      });
+      return;
+    }
+
+    if (
+      configCache.startDate &&
+      moment.utc().isBefore(moment.utc(configCache.startDate, 'YYYY-MM-DD'))
+    ) {
+      await interaction.reply({
+        ephemeral: true,
+        content: `It's not time to trick or treat yet! You need to wait until ${moment(configCache.startDate, 'YYYY-MM-DD').format('MMMM Do')}`,
+      });
+      return;
+    }
   }
 });
 

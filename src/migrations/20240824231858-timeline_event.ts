@@ -7,7 +7,7 @@ module.exports = {
         id VARCHAR PRIMARY KEY,
         "playerId" VARCHAR NOT NULL REFERENCES players (id),
         "promptId" UUID NOT NULL REFERENCES prompts (id),
-        date TIMESTAMP NOT NULL
+        date TIMESTAMP WITH TIME ZONE NOT NULL
       );
     `);
   },
