@@ -343,8 +343,10 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     if (currentPlayer.isDead) {
-      eventEmbed.setTitle('YOU ARE DEAD');
-      eventEmbed.setDescription('You cannot trick or treat anymore');
+      eventEmbed.setTitle('YOU ARE ██DEAD');
+      eventEmbed.setDescription(
+        'You cannot trick or treat anymore... But maybe there is something else you can do.'
+      );
       eventEmbed.setFooter({
         text: `Died at ${new Date(currentPlayer.latestAttempt).toLocaleString()}`,
       });
@@ -482,24 +484,9 @@ client.on(Events.InteractionCreate, async interaction => {
       ? 'You can trick or treat again'
       : `Time until you can trick or treat again: ${timeToTot(currentPlayer)}`;
 
-    let status = `You are feeling **${randomStatus}...**`;
+    let status = `You are feeling **${randomStatus}**...`;
 
-    if (currentPlayer.isDead) {
-      eventEmbed.setColor(ColorEnums.dead);
-      status = '**YOU ARE DEAD**';
-    }
-
-    eventEmbed.setThumbnail(interaction.user.displayAvatarURL());
-    eventEmbed.setDescription(`
-      ## Backpack\n${status}\n\n
-    `);
-    if (!currentPlayer.isDead) {
-      eventEmbed.setFooter({
-        text: `${canTotString}`,
-      });
-    }
-
-    eventEmbed.setFields([
+    let statFields = [
       {
         name: 'Candy',
         value: `**${currentPlayer.candy}**`,
@@ -514,7 +501,35 @@ client.on(Events.InteractionCreate, async interaction => {
         value: `**${currentPlayer.gatherAttempts}**`,
         inline: true,
       },
-    ]);
+    ];
+
+    if (currentPlayer.isDead) {
+      eventEmbed.setColor(ColorEnums.dead);
+      status = '**YOU ARE ██DEAD**\n\nYou are feeling **HUNGRY**...';
+
+      canTotString = canTot(currentPlayer)
+        ? 'You can ███ again...'
+        : `Time until you can ███ again: ${timeToTot(currentPlayer)}`;
+
+      statFields = [
+        {
+          name: 'Candy ██ten',
+          value: `**${currentPlayer.destroyedCandy}**`,
+        },
+        ...statFields.slice(1),
+      ];
+    }
+
+    eventEmbed.setThumbnail(interaction.user.displayAvatarURL());
+    eventEmbed.setDescription(`
+      ## Backpack\n${status}\n\n
+    `);
+
+    eventEmbed.setFooter({
+      text: `${canTotString}`,
+    });
+
+    eventEmbed.setFields(statFields);
 
     await interaction.editReply({
       embeds: [eventEmbed],
@@ -559,9 +574,20 @@ client.on(Events.InteractionCreate, async interaction => {
       await PlayerManager.playerLB(wantedPage);
 
     if (wantedPage > totalPages) {
-      eventEmbed.setTitle('Page out of bounds');
+      eventEmbed.setTitle('No page found');
+      eventEmbed.setDescription(
+        `There are only ${totalPages} leaderboard pages`
+      );
       await interaction.editReply({
-        content: `There are only ${totalPages} Sugar Daddy pages`,
+        embeds: [eventEmbed],
+      });
+      return;
+    }
+
+    if (players.length === 0) {
+      eventEmbed.setDescription('No players yet...');
+      await interaction.editReply({
+        embeds: [eventEmbed],
       });
       return;
     }
@@ -636,6 +662,8 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
+    eventEmbed.setColor(ColorEnums.undead);
+
     if (!currentPlayer.isDead) {
       eventEmbed.setTitle('Huh?');
       eventEmbed.setDescription(`W█at d█ you █e█n?`);
@@ -686,13 +714,13 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
-    const potentialVictim = await PlayerManager.getRandomLivingPlayer(
-      interaction.user.id
-    );
+    const potentialVictim = await PlayerManager.getRandomLivingPlayer([
+      interaction.user.id,
+      target,
+    ]);
 
     if (!potentialVictim) {
-      eventEmbed.setTitle('Coul█ not █at');
-      eventEmbed.setDescription("That did█'t ██em to █ork");
+      eventEmbed.setDescription("Coul█ not █at.\n\nThat did█'t ██em to █ork");
       await interaction.editReply({
         embeds: [eventEmbed],
       });
@@ -711,18 +739,52 @@ client.on(Events.InteractionCreate, async interaction => {
       potentialVictim
     );
 
-    console.log({
-      success,
-      intendedTarget,
-      eatenCandyCount,
-      player: updatedPlayer,
-      actualTarget,
-    });
+    eventEmbed.setTitle('You ███');
 
-    // TODO: Finish line
+    if (!success) {
+      eventEmbed.setDescription('No█hing ███pened\n\nYou are still ███gry...');
+      await interaction.editReply({
+        embeds: [eventEmbed],
+      });
+      eventEmbed.setFooter({
+        text: `You have ███en ${updatedPlayer.destroyedCandy} 🍬`,
+      });
+      return;
+    }
+
+    let attackString = '';
+    let candyString = eatenCandyCount === 1 ? 'CANDY' : 'CANDIES';
+
+    if (!intendedTarget) {
+      attackString += `You at██ck██ <@${target}>!\n\n`;
+      if (eatenCandyCount > 0) {
+        attackString += `...\n\n**BUT** ███acked <@${actualTarget.id}> instead and ███ **${eatenCandyCount} ${candyString}**!!\n\nHow Could you?`;
+      } else {
+        attackString += `...\n\n**BUT** tried to ███ <@${actualTarget.id}>'s candy instead!!!\n\nYou didn't manage to ███ any though.`;
+      }
+    } else {
+      attackString += `You at██ck██ <@${target}>!\n\n`;
+      if (eatenCandyCount > 0) {
+        attackString += `...\n\n**AND** ███ **${eatenCandyCount}** of their CANDY!`;
+      } else {
+        attackString += `...\n\n**AND** Didn't ███ any ██ndy.`;
+      }
+    }
+
+    eventEmbed.setDescription(attackString);
+
+    if (eatenCandyCount > 0) {
+      eventEmbed.setFooter({
+        text: `You have now ███en ${updatedPlayer.destroyedCandy} 🍬`,
+      });
+    } else {
+      eventEmbed.setFooter({
+        text: `You have ███en ${updatedPlayer.destroyedCandy} 🍬`,
+      });
+    }
 
     await interaction.editReply({
-      content: 'Soon',
+      embeds: [eventEmbed],
     });
 
     return;

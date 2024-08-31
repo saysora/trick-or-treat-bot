@@ -16,11 +16,11 @@ export default class PlayerManager {
     return player;
   }
 
-  static async getRandomLivingPlayer(id: string) {
+  static async getRandomLivingPlayer(id: string[]) {
     const player = await Player.findOne({
       where: {
         id: {
-          [Op.ne]: id,
+          [Op.notIn]: id,
         },
         isDead: false,
       },
@@ -123,6 +123,9 @@ export default class PlayerManager {
 
     const eatenCandyCount = randomChance(0, 3).number;
 
+    player.latestAttempt = new Date();
+    player.gatherAttempts += 1;
+
     if (success) {
       if (eatenCandyCount > actualTarget.candy) {
         player.destroyedCandy += actualTarget.candy;
@@ -133,9 +136,10 @@ export default class PlayerManager {
         actualTarget.lostCandyCount += eatenCandyCount;
         player.destroyedCandy += eatenCandyCount;
       }
-      await player.save();
       await actualTarget.save();
     }
+
+    await player.save();
 
     return {
       success,
@@ -176,17 +180,14 @@ export default class PlayerManager {
     const limit = 10;
     const lbPage = page === 0 ? 0 : (page - 1) * limit;
 
-    // This is my preferred way to do this
     const {rows: players, count} = await Player.findAndCountAll({
+      where: {
+        isDead: false,
+      },
       limit,
       offset: lbPage,
       order: [['candy', 'DESC']],
     });
-
-    //const countedPlayers = players.map((player, i) => ({
-    //  place: lbPage === 0 ? i + 1 : lbPage + (i + 1),
-    //  ...player.dataValues,
-    //})) as Player & {place: number}[];
 
     return {
       page: page === 0 ? 1 : page,

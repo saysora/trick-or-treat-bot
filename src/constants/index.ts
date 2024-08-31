@@ -10,6 +10,7 @@ export enum ColorEnums {
   loss = '#C75D64',
   totalLoss = '#844D99',
   dead = '#B30000',
+  undead = '#54C571',
 }
 
 export const PAGE_LIMIT = 10;
