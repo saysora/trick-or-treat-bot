@@ -1,4 +1,6 @@
+import {Op, Sequelize} from 'sequelize';
 import Player from '../models/Player';
+import {randomChance} from '../constants';
 
 interface CreatePlayerProps {
   id: string;
@@ -11,6 +13,24 @@ export default class PlayerManager {
     if (!player) {
       return null;
     }
+    return player;
+  }
+
+  static async getRandomLivingPlayer(id: string) {
+    const player = await Player.findOne({
+      where: {
+        id: {
+          [Op.ne]: id,
+        },
+        isDead: false,
+      },
+      order: Sequelize.literal('random()'),
+    });
+
+    if (!player) {
+      return null;
+    }
+
     return player;
   }
 
@@ -73,6 +93,57 @@ export default class PlayerManager {
 
     await player.save();
     return player;
+  }
+
+  static async eatOtherPlayerCandy(
+    player: Player,
+    target: Player,
+    potentialVictim: Player
+  ) {
+    const chance = randomChance(0, 100).number;
+    let actualTarget: Player;
+    let success = false;
+
+    switch (true) {
+      case chance >= 90: {
+        actualTarget = target;
+        success = true;
+        break;
+      }
+      case chance < 90 && chance >= 60: {
+        actualTarget = potentialVictim;
+        success = true;
+        break;
+      }
+      default: {
+        actualTarget = target;
+        success = false;
+      }
+    }
+
+    const eatenCandyCount = randomChance(0, 3).number;
+
+    if (success) {
+      if (eatenCandyCount > actualTarget.candy) {
+        player.destroyedCandy += actualTarget.candy;
+        actualTarget.lostCandyCount += actualTarget.candy;
+        actualTarget.candy = 0;
+      } else {
+        actualTarget.candy -= eatenCandyCount;
+        actualTarget.lostCandyCount += eatenCandyCount;
+        player.destroyedCandy += eatenCandyCount;
+      }
+      await player.save();
+      await actualTarget.save();
+    }
+
+    return {
+      success,
+      intendedTarget: target.id === actualTarget.id,
+      eatenCandyCount,
+      player,
+      actualTarget,
+    };
   }
 
   static async playerLoseAllCandy(player: Player): Promise<Player> {

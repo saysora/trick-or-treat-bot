@@ -585,6 +585,149 @@ client.on(Events.InteractionCreate, async interaction => {
     return;
   }
 
+  if (interaction.commandName === 'eat') {
+    await interaction.deferReply();
+
+    if (
+      process.env.GAME_CHANNEL_ID &&
+      interaction.channelId !== process.env.GAME_CHANNEL_ID
+    ) {
+      await interaction.reply({
+        ephemeral: true,
+        content: `You can only trick-or-treat in <#${process.env.GAME_CHANNEL_ID}>`,
+      });
+      return;
+    }
+
+    if (!configCache.enabled) {
+      await interaction.reply({
+        ephemeral: true,
+        content: "It's not time to trick or treat yet!",
+      });
+      return;
+    }
+
+    if (configCache.startDate && isBeforeDate(configCache.startDate)) {
+      await interaction.reply({
+        ephemeral: true,
+        content: `It's not time to trick or treat yet! You need to wait until ${moment(configCache.startDate, 'YYYY-MM-DD').format('MMMM Do')}`,
+      });
+      return;
+    }
+
+    if (configCache.endDate && isAfterDate(configCache.endDate)) {
+      await interaction.reply({
+        ephemeral: true,
+        content: 'It is too late to trick or treat. Halloween is over.',
+      });
+      return;
+    }
+
+    const currentPlayer = await PlayerManager.getPlayer(interaction.user.id);
+
+    if (!currentPlayer) {
+      eventEmbed.setTitle('You are not trick or treating');
+      eventEmbed.setDescription(
+        'Use the go-out command to begin trick or treating'
+      );
+      await interaction.editReply({
+        embeds: [eventEmbed],
+      });
+      return;
+    }
+
+    if (!currentPlayer.isDead) {
+      eventEmbed.setTitle('Huh?');
+      eventEmbed.setDescription(`W█at d█ you █e█n?`);
+      await interaction.editReply({
+        embeds: [eventEmbed],
+      });
+      return;
+    }
+
+    if (configCache.cooldownEnabled) {
+      if (!canTot(currentPlayer)) {
+        eventEmbed.setTitle('No█ y█t...');
+        eventEmbed.setDescription(
+          `You must wait **${timeToTot(currentPlayer)}** before you can █at again.`
+        );
+        eventEmbed.setFooter({
+          text: `You have ██ten ${currentPlayer.destroyedCandy} 🍬 • you can also check your backpack to see when you can ea█ again`,
+        });
+        await interaction.editReply({
+          embeds: [eventEmbed],
+        });
+        return;
+      }
+    }
+
+    const target = interaction.options.get('player')?.value as string;
+
+    if (!target) {
+      await interaction.editReply({
+        content: 'You must select a player',
+      });
+      return;
+    }
+
+    if (target === interaction.user.id) {
+      await interaction.editReply({
+        content: 'You must select a player other than yourself',
+      });
+      return;
+    }
+
+    const targetPlayer = await PlayerManager.getPlayer(target);
+
+    if (!targetPlayer) {
+      await interaction.editReply({
+        content: 'That player is not trick or treating!',
+      });
+      return;
+    }
+
+    const potentialVictim = await PlayerManager.getRandomLivingPlayer(
+      interaction.user.id
+    );
+
+    if (!potentialVictim) {
+      eventEmbed.setTitle('Coul█ not █at');
+      eventEmbed.setDescription("That did█'t ██em to █ork");
+      await interaction.editReply({
+        embeds: [eventEmbed],
+      });
+      return;
+    }
+
+    const {
+      success,
+      intendedTarget,
+      eatenCandyCount,
+      player: updatedPlayer,
+      actualTarget,
+    } = await PlayerManager.eatOtherPlayerCandy(
+      currentPlayer,
+      targetPlayer,
+      potentialVictim
+    );
+
+    console.log({
+      success,
+      intendedTarget,
+      eatenCandyCount,
+      player: updatedPlayer,
+      actualTarget,
+    });
+
+    // TODO: Finish line
+
+    await interaction.editReply({
+      content: 'Soon',
+    });
+
+    return;
+  }
+
   // Admin commands
   if (interaction.commandName === 'story-create') {
     const category = interaction.options.get('category')?.value;

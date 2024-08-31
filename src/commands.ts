@@ -17,6 +17,12 @@ const commands = [
     .addNumberOption(option =>
       option.setName('page').setDescription('Page of the leaderboard to check')
     ),
+  new SlashCommandBuilder()
+    .setName('eat')
+    .setDescription('███ █L███R█ █████')
+    .addUserOption(option =>
+      option.setName('player').setDescription('██R███').setRequired(true)
+    ),
 
   // Admin only commands
   new SlashCommandBuilder()
