@@ -29,13 +29,12 @@ export default class ConfigManager {
     }
 
     for (const key of Object.keys(update)) {
-      // @ts-ignore
-      if (update[key] === 'null') {
-        // @ts-ignore
-        config[key] = null;
+      if (update[key as keyof UpdateConfigProps] === 'null') {
+        config[key as keyof Config] = null!;
       } else {
-        // @ts-ignore
-        config[key] = update[key];
+        //@ts-ignore - We don't care to deal with the overhead
+        //the only person who can use this is me
+        config[key] = update[key]!;
       }
     }
 

@@ -12,7 +12,13 @@ import {
   WebhookClient,
 } from 'discord.js';
 import commands from './commands';
-import {ColorEnums, randomChance} from './constants';
+import {
+  ColorEnums,
+  FALSE_STATUSES,
+  isAfterDate,
+  isBeforeDate,
+  randomChance,
+} from './constants';
 import Player from './models/Player';
 import StoryTeller from './classes/StoryTeller';
 import {CategoryName} from './models/PromptCategory';
@@ -35,6 +41,53 @@ DISC_VARS.forEach(discVar => {
     throw new Error(`Missing ${discVar}`);
   }
 });
+
+// Should move this somewhere else to clean it up
+// but yolo
+const canTot = (player: Player) => {
+  let canAttempt = false;
+
+  if (
+    player.gatherAttempts > 0 &&
+    !moment().isSameOrAfter(
+      moment(player.latestAttempt).add(
+        configCache.cooldownTime,
+        configCache.cooldownUnit as moment.unitOfTime.DurationConstructor
+      )
+    )
+  ) {
+    canAttempt = false;
+  } else {
+    canAttempt = true;
+  }
+  return canAttempt;
+};
+
+const timeToTot = (player: Player) => {
+  console.log({
+    lastAttempt: moment(player.latestAttempt).toString(),
+    canAttemptTime: moment(player.latestAttempt)
+      .add(
+        configCache.cooldownTime,
+        configCache.cooldownUnit as moment.unitOfTime.DurationConstructor
+      )
+      .toString(),
+    now: moment().toString(),
+    canAttempString: moment(player.latestAttempt)
+      .add(
+        configCache.cooldownTime,
+        configCache.cooldownUnit as moment.unitOfTime.DurationConstructor
+      )
+      .fromNow(),
+  });
+
+  return moment(player.latestAttempt)
+    .add(
+      configCache.cooldownTime,
+      configCache.cooldownUnit as moment.unitOfTime.DurationConstructor
+    )
+    .fromNow(true);
+};
 
 const hookClient = new WebhookClient({
   url: process.env.WEBHOOK_URL!,
@@ -199,10 +252,7 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
-    if (
-      configCache.startDate &&
-      moment.utc().isBefore(moment.utc(configCache.startDate, 'YYYY-MM-DD'))
-    ) {
+    if (configCache.startDate && isBeforeDate(configCache.startDate)) {
       await interaction.reply({
         ephemeral: true,
         content: `It's not time to trick or treat yet! You need to wait until ${moment(configCache.startDate, 'YYYY-MM-DD').format('MMMM Do')}`,
@@ -210,10 +260,7 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
-    if (
-      configCache.endDate &&
-      moment.utc().isAfter(moment.utc(configCache.endDate, 'YYYY-MM-DD'))
-    ) {
+    if (configCache.endDate && isAfterDate(configCache.endDate)) {
       await interaction.reply({
         ephemeral: true,
         content: 'It is too late to trick or treat. Halloween is over.',
@@ -238,7 +285,7 @@ client.on(Events.InteractionCreate, async interaction => {
           `🏠🌲🏠🌲🏠🌲 \n🏃‍♀️  🏃 🏃‍\n🌲🏠🌲🏠🌲🏠\n\nDo be careful out there...`
         );
         eventEmbed.setFooter({
-          text: 'Use the /tot command to collect candy',
+          text: 'Use the /trick-or-treat command to collect candy',
         });
       } catch (e) {
         eventEmbed.setTitle('Something went wrong');
@@ -253,7 +300,7 @@ client.on(Events.InteractionCreate, async interaction => {
     } else {
       eventEmbed.setTitle('You are already trick or treating');
       eventEmbed.setDescription(
-        'No need to go out again,\ninstead use the trick-or-treat (or tot) command to gather candy'
+        'No need to go out again,\ninstead use the /trick-or-treat  command to gather candy'
       );
       await interaction.editReply({
         embeds: [eventEmbed],
@@ -262,7 +309,7 @@ client.on(Events.InteractionCreate, async interaction => {
     return;
   }
 
-  if (['trick-or-treat', 'tot'].includes(interaction.commandName)) {
+  if (interaction.commandName === 'trick-or-treat') {
     if (
       process.env.GAME_CHANNEL_ID &&
       interaction.channelId !== process.env.GAME_CHANNEL_ID
@@ -274,10 +321,7 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
-    if (
-      configCache.startDate &&
-      moment.utc().isBefore(moment.utc(configCache.startDate, 'YYYY-MM-DD'))
-    ) {
+    if (configCache.startDate && isBeforeDate(configCache.startDate)) {
       await interaction.reply({
         ephemeral: true,
         content: `It's not time to trick or treat yet! You need to wait until ${moment(configCache.startDate, 'YYYY-MM-DD').format('MMMM Do')}`,
@@ -285,10 +329,7 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
-    if (
-      configCache.endDate &&
-      moment.utc().isAfter(moment.utc(configCache.endDate, 'YYYY-MM-DD'))
-    ) {
+    if (configCache.endDate && isAfterDate(configCache.endDate)) {
       await interaction.reply({
         ephemeral: true,
         content: 'It is too late to trick or treat. Halloween is over.',
@@ -326,31 +367,13 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     if (configCache.cooldownEnabled) {
-      //if (currentPlayer.gatherAttempts > 0 && moment.utc().isSameOrBefore(moment(currentPlayer.latestAttempt).add(cooldownTime.int, cooldownTime.unit))) {
-      //  eventEmbed.setFooter({
-      //    text: `Time until next trick or treat: ${moment.utc(currentPlayer.latestAttempt).add(cooldownTime.int, cooldownTime.unit).from(moment(), true)}`
-      //  })
-      //}
-      if (
-        currentPlayer.gatherAttempts > 0 &&
-        !moment().isSameOrAfter(
-          moment(currentPlayer.latestAttempt).add(
-            configCache.cooldownTime,
-            configCache.cooldownUnit as moment.unitOfTime.DurationConstructor
-          )
-        )
-      ) {
+      if (!canTot(currentPlayer)) {
         eventEmbed.setTitle('Eager are we?');
         eventEmbed.setDescription(
-          `Too bad.\nYou must wait **${moment(currentPlayer.latestAttempt)
-            .add(
-              configCache.cooldownTime,
-              configCache.cooldownUnit as moment.unitOfTime.DurationConstructor
-            )
-            .from(moment(), true)}** before you can trick or treat again...`
+          `Too bad.\nYou must wait **${timeToTot(currentPlayer)}** before you can trick or treat again...`
         );
         eventEmbed.setFooter({
-          text: `You have ${currentPlayer.candy} 🍬 • you can also check your bag to see when you can trick or treat again`,
+          text: `You have ${currentPlayer.candy} 🍬 • you can also check your backpack to see when you can trick or treat again`,
         });
         await interaction.editReply({
           embeds: [eventEmbed],
@@ -425,10 +448,7 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
-    if (
-      configCache.startDate &&
-      moment.utc().isBefore(moment.utc(configCache.startDate, 'YYYY-MM-DD'))
-    ) {
+    if (configCache.startDate && isBeforeDate(configCache.startDate)) {
       await interaction.reply({
         ephemeral: true,
         content: `It's not time to trick or treat yet! You need to wait until ${moment(configCache.startDate, 'YYYY-MM-DD').format('MMMM Do')}`,
@@ -436,16 +456,75 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
-    if (
-      configCache.endDate &&
-      moment.utc().isAfter(moment.utc(configCache.endDate, 'YYYY-MM-DD'))
-    ) {
+    if (configCache.endDate && isAfterDate(configCache.endDate)) {
       await interaction.reply({
         ephemeral: true,
         content: 'It is too late to trick or treat. Halloween is over.',
       });
       return;
     }
+
+    await interaction.deferReply({
+      ephemeral: true,
+    });
+
+    const currentPlayer = await PManager.getPlayer(interaction.user.id);
+
+    if (!currentPlayer) {
+      await interaction.editReply({
+        content: `You aren not trick-or-treating yet! Use the /go-out command to start`,
+      });
+      return;
+    }
+
+    const randomStatus =
+      FALSE_STATUSES[
+        Math.floor(Math.random() * FALSE_STATUSES.length)
+      ].toUpperCase();
+
+    let canTotString = canTot(currentPlayer)
+      ? 'You can trick or treat again'
+      : `Time until you can trick or treat again: ${timeToTot(currentPlayer)}`;
+
+    let status = `You are feeling **${randomStatus}...**`;
+
+    if (currentPlayer.isDead) {
+      eventEmbed.setColor(ColorEnums.dead);
+      status = '**YOU ARE DEAD**';
+    }
+
+    eventEmbed.setThumbnail(interaction.user.displayAvatarURL());
+    eventEmbed.setDescription(`
+      ## Backpack\n${status}\n\n
+    `);
+    if (!currentPlayer.isDead) {
+      eventEmbed.setFooter({
+        text: `${canTotString}`,
+      });
+    }
+
+    eventEmbed.setFields([
+      {
+        name: 'Candy',
+        value: `**${currentPlayer.candy}**`,
+      },
+      {
+        name: 'Candy Lost',
+        value: `**${currentPlayer.lostCandyCount}**`,
+        inline: true,
+      },
+      {
+        name: 'Gather Attempts',
+        value: `**${currentPlayer.gatherAttempts}**`,
+        inline: true,
+      },
+    ]);
+
+    await interaction.editReply({
+      embeds: [eventEmbed],
+    });
+
+    return;
   }
 
   if (['lb', 'leader-board'].includes(interaction.commandName)) {
@@ -460,10 +539,7 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
-    if (
-      configCache.startDate &&
-      moment.utc().isBefore(moment.utc(configCache.startDate, 'YYYY-MM-DD'))
-    ) {
+    if (configCache.startDate && isBeforeDate(configCache.startDate)) {
       await interaction.reply({
         ephemeral: true,
         content: `It's not time to trick or treat yet! You need to wait until ${moment(configCache.startDate, 'YYYY-MM-DD').format('MMMM Do')}`,
