@@ -1,4 +1,3 @@
-import {Repository} from 'sequelize-typescript';
 import Config from '../models/Config';
 
 interface UpdateConfigProps {
@@ -11,18 +10,16 @@ interface UpdateConfigProps {
 }
 
 export default class ConfigManager {
-  constructor(private configRepo: Repository<Config>) {}
-
-  async getConfig(): Promise<Config> {
-    const config = await this.configRepo.findOne();
+  static async getConfig(): Promise<Config> {
+    const config = await Config.findOne();
     if (!config) {
       throw new Error('No config');
     }
     return config;
   }
 
-  async updateConfig(update: UpdateConfigProps): Promise<Config> {
-    const config = await this.configRepo.findOne();
+  static async updateConfig(update: UpdateConfigProps): Promise<Config> {
+    const config = await Config.findOne();
 
     if (!config) {
       throw new Error('No config');

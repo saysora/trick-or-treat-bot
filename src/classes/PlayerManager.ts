@@ -1,4 +1,3 @@
-import {Repository} from 'sequelize-typescript';
 import Player from '../models/Player';
 
 interface CreatePlayerProps {
@@ -7,19 +6,17 @@ interface CreatePlayerProps {
 }
 
 export default class PlayerManager {
-  constructor(private playerRepo: Repository<Player>) {}
-
-  async getPlayer(id: string): Promise<Player | null> {
-    const player = await this.playerRepo.findByPk(id);
+  static async getPlayer(id: string): Promise<Player | null> {
+    const player = await Player.findByPk(id);
     if (!player) {
       return null;
     }
     return player;
   }
 
-  async createPlayer(player: CreatePlayerProps): Promise<Player | null> {
+  static async createPlayer(player: CreatePlayerProps): Promise<Player | null> {
     try {
-      const newPlayer = await this.playerRepo.create({
+      const newPlayer = await Player.create({
         id: player.id,
         serverId: player.serverId,
       });
@@ -29,9 +26,9 @@ export default class PlayerManager {
     }
   }
 
-  async removePlayer(id: string): Promise<number | null> {
+  static async removePlayer(id: string): Promise<number | null> {
     try {
-      const removedPlayer = await this.playerRepo.destroy({
+      const removedPlayer = await Player.destroy({
         where: {
           id,
         },
@@ -42,7 +39,10 @@ export default class PlayerManager {
     }
   }
 
-  async givePlayerCandy(player: Player, amount: number): Promise<Player> {
+  static async givePlayerCandy(
+    player: Player,
+    amount: number
+  ): Promise<Player> {
     player.latestAttempt = new Date();
     player.gatherAttempts += 1;
     player.candy += amount;
@@ -52,7 +52,10 @@ export default class PlayerManager {
     return player;
   }
 
-  async takePlayerCandy(player: Player, amount: number): Promise<Player> {
+  static async takePlayerCandy(
+    player: Player,
+    amount: number
+  ): Promise<Player> {
     player.latestAttempt = new Date();
     player.gatherAttempts += 1;
     if (player.candy < amount) {
@@ -72,7 +75,7 @@ export default class PlayerManager {
     return player;
   }
 
-  async playerLoseAllCandy(player: Player): Promise<Player> {
+  static async playerLoseAllCandy(player: Player): Promise<Player> {
     player.latestAttempt = new Date();
     player.gatherAttempts += 1;
     player.lostCandyCount += player.candy;
@@ -83,7 +86,7 @@ export default class PlayerManager {
     return player;
   }
 
-  async killPlayer(player: Player): Promise<Player> {
+  static async killPlayer(player: Player): Promise<Player> {
     player.latestAttempt = new Date();
     player.gatherAttempts += 1;
     player.lostCandyCount += player.candy;
@@ -92,5 +95,32 @@ export default class PlayerManager {
 
     await player.save();
     return player;
+  }
+
+  static async playerLB(page = 1): Promise<{
+    page: number;
+    players: Player[]; //& {place: number}[];
+    totalPages: number;
+  }> {
+    const limit = 10;
+    const lbPage = page === 0 ? 0 : (page - 1) * limit;
+
+    // This is my preferred way to do this
+    const {rows: players, count} = await Player.findAndCountAll({
+      limit,
+      offset: lbPage,
+      order: [['candy', 'DESC']],
+    });
+
+    //const countedPlayers = players.map((player, i) => ({
+    //  place: lbPage === 0 ? i + 1 : lbPage + (i + 1),
+    //  ...player.dataValues,
+    //})) as Player & {place: number}[];
+
+    return {
+      page: page === 0 ? 1 : page,
+      players,
+      totalPages: Math.ceil(count / limit),
+    };
   }
 }

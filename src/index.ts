@@ -9,7 +9,6 @@ import {
   REST,
   Routes,
   User,
-  WebhookClient,
 } from 'discord.js';
 import commands from './commands';
 import {
@@ -26,10 +25,6 @@ import moment = require('moment');
 import PlayerManager from './classes/PlayerManager';
 import Config from './models/Config';
 import ConfigManager from './classes/ConfigManager';
-
-// Services
-const PManager = new PlayerManager(Player);
-const CManager = new ConfigManager(Config);
 
 // Setup
 let configCache: Config;
@@ -64,23 +59,6 @@ const canTot = (player: Player) => {
 };
 
 const timeToTot = (player: Player) => {
-  console.log({
-    lastAttempt: moment(player.latestAttempt).toString(),
-    canAttemptTime: moment(player.latestAttempt)
-      .add(
-        configCache.cooldownTime,
-        configCache.cooldownUnit as moment.unitOfTime.DurationConstructor
-      )
-      .toString(),
-    now: moment().toString(),
-    canAttempString: moment(player.latestAttempt)
-      .add(
-        configCache.cooldownTime,
-        configCache.cooldownUnit as moment.unitOfTime.DurationConstructor
-      )
-      .fromNow(),
-  });
-
   return moment(player.latestAttempt)
     .add(
       configCache.cooldownTime,
@@ -88,10 +66,6 @@ const timeToTot = (player: Player) => {
     )
     .fromNow(true);
 };
-
-const hookClient = new WebhookClient({
-  url: process.env.WEBHOOK_URL!,
-});
 
 const client = new Client({
   intents: [
@@ -127,14 +101,12 @@ const rest = new REST({version: '10'}).setToken(process.env.TOKEN!);
 
 let botUser: User;
 
-let config: Config;
-
 client.once(Events.ClientReady, async readyClient => {
   botUser = readyClient.user;
   console.info(`Online as ${botUser.tag}`);
   await db.authenticate();
 
-  configCache = await CManager.getConfig();
+  configCache = await ConfigManager.getConfig();
 });
 
 client.on(Events.InteractionCreate, async interaction => {
@@ -200,7 +172,7 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
-    configCache = await CManager.updateConfig({
+    configCache = await ConfigManager.updateConfig({
       [interaction.options.get('item')?.value as string]:
         interaction.options.get('value')?.value,
     });
@@ -278,11 +250,11 @@ client.on(Events.InteractionCreate, async interaction => {
 
     await interaction.deferReply();
 
-    const isCurrentPlayer = await PManager.getPlayer(interaction.user.id);
+    const isCurrentPlayer = await PlayerManager.getPlayer(interaction.user.id);
 
     if (!isCurrentPlayer) {
       try {
-        await PManager.createPlayer({
+        await PlayerManager.createPlayer({
           id: interaction.user.id,
           serverId: interaction.guildId!,
         });
@@ -357,7 +329,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
     eventEmbed.setTitle('Trick or Treat');
 
-    const currentPlayer = await PManager.getPlayer(interaction.user.id);
+    const currentPlayer = await PlayerManager.getPlayer(interaction.user.id);
 
     if (!currentPlayer) {
       eventEmbed.setTitle('You are not trick or treating');
@@ -408,14 +380,14 @@ client.on(Events.InteractionCreate, async interaction => {
 
     switch (true) {
       case game.story.category === CategoryName.gameover: {
-        updatedPlayer = await PManager.killPlayer(currentPlayer);
+        updatedPlayer = await PlayerManager.killPlayer(currentPlayer);
         eventEmbed.setFooter({
           text: 'You are DEAD',
         });
         break;
       }
       case game.story.category === CategoryName.totalLoss: {
-        updatedPlayer = await PManager.playerLoseAllCandy(currentPlayer);
+        updatedPlayer = await PlayerManager.playerLoseAllCandy(currentPlayer);
         eventEmbed.setFooter({
           text: 'You now have 0 🍬',
         });
@@ -423,12 +395,12 @@ client.on(Events.InteractionCreate, async interaction => {
       }
       default: {
         if (!game.gain) {
-          updatedPlayer = await PManager.takePlayerCandy(
+          updatedPlayer = await PlayerManager.takePlayerCandy(
             currentPlayer,
             game.amount
           );
         } else {
-          updatedPlayer = await PManager.givePlayerCandy(
+          updatedPlayer = await PlayerManager.givePlayerCandy(
             currentPlayer,
             game.amount
           );
@@ -492,7 +464,7 @@ client.on(Events.InteractionCreate, async interaction => {
       ephemeral: true,
     });
 
-    const currentPlayer = await PManager.getPlayer(interaction.user.id);
+    const currentPlayer = await PlayerManager.getPlayer(interaction.user.id);
 
     if (!currentPlayer) {
       await interaction.editReply({
@@ -551,7 +523,7 @@ client.on(Events.InteractionCreate, async interaction => {
     return;
   }
 
-  if (['lb', 'leader-board'].includes(interaction.commandName)) {
+  if (interaction.commandName === 'leaderboard') {
     if (
       process.env.GAME_CHANNEL_ID &&
       interaction.channelId !== process.env.GAME_CHANNEL_ID
@@ -579,7 +551,116 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
+    await interaction.deferReply();
+
+    const wantedPage = Number(interaction.options.get('page')?.value ?? 0);
+
+    const {players, page, totalPages} =
+      await PlayerManager.playerLB(wantedPage);
+
+    if (wantedPage > totalPages) {
+      eventEmbed.setTitle('Page out of bounds');
+      await interaction.editReply({
+        content: `There are only ${totalPages} Sugar Daddy pages`,
+      });
+      return;
+    }
+
+    eventEmbed.setTitle('Sugar Daddies');
+    let lbString = '';
+
+    players.forEach((player, i) => {
+      lbString += `**${page === 1 ? i + 1 : (page - 1) * 10 + (i + 1)}**. <@${player.id}>\n`;
+    });
+
+    eventEmbed.setDescription(lbString);
+    eventEmbed.setFooter({
+      text: `Page ${page}/${totalPages}`,
+    });
+
+    await interaction.editReply({
+      embeds: [eventEmbed],
+    });
+
     return;
+  }
+
+  // Admin commands
+  if (interaction.commandName === 'story-create') {
+    const category = interaction.options.get('category')?.value;
+    const content = interaction.options.get('content')?.value;
+    if (!category || !content) {
+      await interaction.reply({
+        ephemeral: true,
+        content: 'Category or content missing for the story',
+      });
+      return;
+    }
+
+    await interaction.deferReply({
+      ephemeral: true,
+    });
+
+    const newStory = await StoryTeller.addStory(
+      category as CategoryName,
+      content as string
+    );
+
+    if (!newStory) {
+      eventEmbed.setTitle('Could not add story');
+      eventEmbed.setDescription('Check the logs');
+      await interaction.editReply({
+        embeds: [eventEmbed],
+      });
+      return;
+    } else {
+      eventEmbed.setTitle('Story added');
+      eventEmbed.setDescription(
+        `Category: ${category}\nStory: ${newStory.content}`
+      );
+      eventEmbed.setFooter({
+        text: `ID: ${newStory.id}`,
+      });
+      await interaction.editReply({
+        embeds: [eventEmbed],
+      });
+      return;
+    }
+  }
+
+  if (interaction.commandName === 'story-delete') {
+    const id = interaction.options.get('id')?.value;
+
+    if (!id) {
+      await interaction.reply({
+        ephemeral: true,
+        content: 'You must provide the id',
+      });
+    }
+
+    await interaction.deferReply({
+      ephemeral: true,
+    });
+
+    const storyDeleted = await StoryTeller.deleteStory(id as string);
+
+    if (!storyDeleted) {
+      eventEmbed.setTitle('Something went wrong');
+      eventEmbed.setDescription('Check the logs');
+      await interaction.editReply({
+        embeds: [eventEmbed],
+      });
+      return;
+    } else {
+      eventEmbed.setTitle('Story Deleted');
+      eventEmbed.setDescription(
+        `Category: ${storyDeleted.category.name}\nStory: ${storyDeleted.content}`
+      );
+      await interaction.editReply({
+        embeds: [eventEmbed],
+      });
+      return;
+    }
   }
 });
 

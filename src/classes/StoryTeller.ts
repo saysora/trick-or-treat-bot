@@ -16,6 +16,17 @@ interface GamePromptRes {
 }
 
 export default class StoryTeller {
+  static async getPrompt(id: string) {
+    const prompt = await Prompt.findByPk(id);
+
+    if (!prompt) {
+      console.error('Could not find prompt');
+      return null;
+    } else {
+      return prompt;
+    }
+  }
+
   static async randPromptByCat(category: CategoryName, candyCount: number) {
     let candyTerm = 'CANDY';
 
@@ -122,5 +133,57 @@ export default class StoryTeller {
         ...story,
       },
     };
+  }
+
+  static async addStory(category: CategoryName, content: string) {
+    try {
+      const promptCategory = await PromptCategory.findOne({
+        where: {
+          name: category,
+        },
+      });
+
+      if (!promptCategory) {
+        throw new Error('No prompt category');
+      }
+
+      const newPrompt = await Prompt.create({
+        content,
+        categoryId: promptCategory.id,
+      });
+      return newPrompt;
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
+  }
+
+  static async editStory(id: string, content: string) {
+    const prompt = await Prompt.findByPk(id);
+    if (!prompt) {
+      return null;
+    } else {
+      prompt.content = content;
+      await prompt.save();
+      return prompt;
+    }
+  }
+
+  static async deleteStory(id: string) {
+    try {
+      const promptToDelete = await Prompt.findOne({
+        where: {id},
+        include: [{model: PromptCategory}],
+      });
+      if (!promptToDelete) {
+        throw new Error('Could not find prompt');
+      }
+
+      await promptToDelete.destroy();
+      return promptToDelete;
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
   }
 }

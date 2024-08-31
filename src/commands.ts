@@ -1,7 +1,7 @@
 import {SlashCommandBuilder} from 'discord.js';
+import {CategoryName} from './models/PromptCategory';
 
 const commands = [
-  // TODO: Add in leaderboard comand
   new SlashCommandBuilder()
     .setName('go-out')
     .setDescription('Use this command to begin trick-or-treating'),
@@ -11,6 +11,12 @@ const commands = [
   new SlashCommandBuilder()
     .setName('backpack')
     .setDescription('Check your stats'),
+  new SlashCommandBuilder()
+    .setName('leaderboard')
+    .setDescription('See who has the most candy')
+    .addNumberOption(option =>
+      option.setName('page').setDescription('Page of the leaderboard to check')
+    ),
 
   // Admin only commands
   new SlashCommandBuilder()
@@ -39,6 +45,57 @@ const commands = [
         .setName('value')
         .setDescription('Set config item value')
         .setRequired(true)
+    )
+    .setDefaultMemberPermissions(0),
+  // Story commands
+  new SlashCommandBuilder()
+    .setName('story-create')
+    .setDescription('Add a story to the list')
+    .addStringOption(option =>
+      option
+        .setName('category')
+        .setDescription('The category of the story')
+        .setRequired(true)
+        .addChoices(
+          {
+            name: 'Critical Win',
+            value: CategoryName.critWin,
+          },
+          {name: 'Win', value: CategoryName.win},
+          {
+            name: 'Single Win',
+            value: CategoryName.singularWin,
+          },
+          {
+            name: 'False Win',
+            value: CategoryName.falseWin,
+          },
+          {
+            name: 'Loss',
+            value: CategoryName.loss,
+          },
+          {
+            name: 'Total Loss',
+            value: CategoryName.totalLoss,
+          },
+          {
+            name: 'Game Over',
+            value: CategoryName.gameover,
+          }
+        )
+    )
+    .addStringOption(option =>
+      option
+        .setName('content')
+        .setDescription('Content of the story')
+        .setRequired(true)
+    )
+    .setDefaultMemberPermissions(0),
+  new SlashCommandBuilder()
+    .setName('story-delete')
+    .setDescription('Delete a story from the list')
+    .addStringOption(option =>
+      option.setName('id').setDescription('Id of the story').setRequired(true)
     )
     .setDefaultMemberPermissions(0),
 ];

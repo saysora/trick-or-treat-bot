@@ -1,6 +1,7 @@
 import {
   BelongsTo,
   Column,
+  DataType,
   ForeignKey,
   IsUUID,
   Model,
@@ -16,7 +17,9 @@ import PromptCategory from './PromptCategory';
 export default class Prompt extends Model {
   @PrimaryKey
   @IsUUID(4)
-  @Column
+  @Column({
+    defaultValue: DataType.UUIDV4(),
+  })
   id: string;
 
   @ForeignKey(() => PromptCategory)
