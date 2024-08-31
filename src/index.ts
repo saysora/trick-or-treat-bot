@@ -612,8 +612,6 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   if (interaction.commandName === 'eat') {
-    await interaction.deferReply();
-
     if (
       process.env.GAME_CHANNEL_ID &&
       interaction.channelId !== process.env.GAME_CHANNEL_ID
@@ -648,6 +646,8 @@ client.on(Events.InteractionCreate, async interaction => {
       });
       return;
     }
+
+    await interaction.deferReply();
 
     const currentPlayer = await PlayerManager.getPlayer(interaction.user.id);
 
