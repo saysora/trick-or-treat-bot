@@ -252,6 +252,14 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
+    if (!configCache.enabled) {
+      await interaction.reply({
+        ephemeral: true,
+        content: "It's not time to trick or treat yet!",
+      });
+      return;
+    }
+
     if (configCache.startDate && isBeforeDate(configCache.startDate)) {
       await interaction.reply({
         ephemeral: true,
@@ -317,6 +325,14 @@ client.on(Events.InteractionCreate, async interaction => {
       await interaction.reply({
         ephemeral: true,
         content: `You can only trick-or-treat in <#${process.env.GAME_CHANNEL_ID}>`,
+      });
+      return;
+    }
+
+    if (!configCache.enabled) {
+      await interaction.reply({
+        ephemeral: true,
+        content: "It's not time to trick or treat yet!",
       });
       return;
     }
@@ -448,6 +464,14 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
+    if (!configCache.enabled) {
+      await interaction.reply({
+        ephemeral: true,
+        content: "It's not time to trick or treat yet!",
+      });
+      return;
+    }
+
     if (configCache.startDate && isBeforeDate(configCache.startDate)) {
       await interaction.reply({
         ephemeral: true,
@@ -539,6 +563,14 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
+    if (!configCache.enabled) {
+      await interaction.reply({
+        ephemeral: true,
+        content: "It's not time to trick or treat yet!",
+      });
+      return;
+    }
+
     if (configCache.startDate && isBeforeDate(configCache.startDate)) {
       await interaction.reply({
         ephemeral: true,
@@ -546,6 +578,8 @@ client.on(Events.InteractionCreate, async interaction => {
       });
       return;
     }
+
+    return;
   }
 });
 
