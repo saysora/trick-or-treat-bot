@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import {db} from './classes/database';
 import {
+  ActivityType,
   Client,
   EmbedBuilder,
   Events,
@@ -28,6 +29,7 @@ import ConfigManager from './classes/ConfigManager';
 
 // Setup
 let configCache: Config;
+const HALLOWEEN_DATE = '2024-10-31';
 
 const DISC_VARS = ['TOKEN', 'CLIENTID', 'WEBHOOK_URL'];
 
@@ -107,6 +109,21 @@ client.once(Events.ClientReady, async readyClient => {
   await db.authenticate();
 
   configCache = await ConfigManager.getConfig();
+  const timeUntilHalloween = moment(HALLOWEEN_DATE).fromNow(true);
+  const halloweenTimer = setInterval(() => {
+    const minutesUntilHalloween = moment(HALLOWEEN_DATE).diff(
+      moment(),
+      'minutes'
+    );
+    if (minutesUntilHalloween < 0) {
+      clearInterval(halloweenTimer);
+      return;
+    }
+
+    readyClient.user.setActivity(`${timeUntilHalloween} until Halloween`, {
+      type: ActivityType.Custom,
+    });
+  }, 60 * 1000);
 });
 
 client.on(Events.InteractionCreate, async interaction => {
