@@ -614,7 +614,7 @@ client.on(Events.InteractionCreate, async interaction => {
     let lbString = '';
 
     players.forEach((player, i) => {
-      lbString += `**${page === 1 ? i + 1 : (page - 1) * 10 + (i + 1)}**. <@${player.id}>\n`;
+      lbString += `**${page === 1 ? i + 1 : (page - 1) * 10 + (i + 1)}**. <@${player.id}> - ${player.candy}🍬\n`;
     });
 
     eventEmbed.setDescription(lbString);
