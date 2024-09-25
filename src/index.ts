@@ -109,14 +109,15 @@ client.once(Events.ClientReady, async readyClient => {
   await db.authenticate();
 
   configCache = await ConfigManager.getConfig();
-  const timeUntilHalloween = moment(HALLOWEEN_DATE).fromNow(true);
   const halloweenTimer = setInterval(() => {
+    const timeUntilHalloween = moment(HALLOWEEN_DATE).fromNow(true);
     const minutesUntilHalloween = moment(HALLOWEEN_DATE).diff(
       moment(),
       'minutes'
     );
     if (minutesUntilHalloween < 0) {
       clearInterval(halloweenTimer);
+      readyClient.user.setActivity('');
       return;
     }
 
