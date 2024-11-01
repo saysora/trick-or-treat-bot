@@ -181,9 +181,6 @@ export default class PlayerManager {
     const lbPage = page === 0 ? 0 : (page - 1) * limit;
 
     const {rows: players, count} = await Player.findAndCountAll({
-      where: {
-        isDead: false,
-      },
       limit,
       offset: lbPage,
       order: [['candy', 'DESC']],
@@ -194,5 +191,15 @@ export default class PlayerManager {
       players,
       totalPages: Math.ceil(count / limit),
     };
+  }
+
+  static async resetAll(): Promise<boolean> {
+    try {
+      await Player.destroy({where: {}});
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
   }
 }

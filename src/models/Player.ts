@@ -4,7 +4,7 @@ import {Column, DataType, Model, PrimaryKey, Table} from 'sequelize-typescript';
   tableName: 'players',
   timestamps: false,
 })
-export default class Player extends Model {
+export default class Player extends Model<Partial<Player>> {
   @PrimaryKey
   @Column
   id: string;

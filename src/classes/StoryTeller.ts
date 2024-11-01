@@ -148,9 +148,10 @@ export default class StoryTeller {
       }
 
       const newPrompt = await Prompt.create({
-        content,
         categoryId: promptCategory.id,
+        content,
       });
+
       return newPrompt;
     } catch (e) {
       console.error(e);

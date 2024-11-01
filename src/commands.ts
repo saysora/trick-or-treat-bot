@@ -104,6 +104,10 @@ const commands = [
       option.setName('id').setDescription('Id of the story').setRequired(true)
     )
     .setDefaultMemberPermissions(0),
+  new SlashCommandBuilder()
+    .setName('reset-all')
+    .setDescription('Resets all player data')
+    .setDefaultMemberPermissions(0),
 ];
 
 export default commands;

@@ -24,6 +24,15 @@ export const randomChance = (min: number, max: number) => {
   };
 };
 
+export enum TIMELINE_EVENT {
+  START = 'started',
+  GAIN = 'gained',
+  LOST = ' lost',
+  LOSTALL = 'lost all',
+  NOTHING = 'nothing',
+  DIED = 'died',
+}
+
 const falseStatusSet = new Set([
   'Admired',
   'Alive',

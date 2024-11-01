@@ -9,15 +9,17 @@ import {
 } from 'sequelize-typescript';
 import Player from './Player';
 import Prompt from './Prompt';
+import {TIMELINE_EVENT} from '../constants';
 
 @Table({
   tableName: 'timeline_events',
   timestamps: false,
 })
-export default class TimelineEvent extends Model {
+export default class TimelineEvent extends Model<Partial<TimelineEvent>> {
   @PrimaryKey
   @Column({
     type: DataType.UUIDV4,
+    defaultValue: DataType.UUIDV4,
   })
   id: string;
 
@@ -29,12 +31,26 @@ export default class TimelineEvent extends Model {
   player: Player;
 
   @ForeignKey(() => Prompt)
-  @Column
-  promptId: string;
+  @Column({
+    type: DataType.UUIDV4,
+  })
+  promptId: string | null;
 
   @BelongsTo(() => Prompt)
-  prompt: Prompt;
+  prompt: Prompt | null;
 
   @Column
+  eventType: TIMELINE_EVENT;
+
+  @Column
+  roll: number;
+
+  @Column
+  candyAmount: number;
+
+  @Column({
+    type: DataType.DATE,
+    defaultValue: new Date(),
+  })
   date: Date;
 }

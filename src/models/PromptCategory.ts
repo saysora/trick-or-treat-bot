@@ -22,7 +22,7 @@ export enum CategoryName {
   tableName: 'prompt_categories',
   timestamps: false,
 })
-export default class PromptCategory extends Model {
+export default class PromptCategory extends Model<PromptCategory> {
   @PrimaryKey
   @Column({
     type: DataType.UUIDV4,

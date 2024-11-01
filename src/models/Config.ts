@@ -11,7 +11,7 @@ import {
   tableName: 'config',
   timestamps: false,
 })
-export default class Config extends Model {
+export default class Config extends Model<Config> {
   @PrimaryKey
   @Column
   id: number;

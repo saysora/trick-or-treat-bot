@@ -14,7 +14,7 @@ import PromptCategory from './PromptCategory';
   tableName: 'prompts',
   timestamps: false,
 })
-export default class Prompt extends Model {
+export default class Prompt extends Model<Partial<Prompt>> {
   @PrimaryKey
   @IsUUID(4)
   @Column({

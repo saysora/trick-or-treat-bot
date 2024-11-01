@@ -109,21 +109,37 @@ client.once(Events.ClientReady, async readyClient => {
   await db.authenticate();
 
   configCache = await ConfigManager.getConfig();
-  const halloweenTimer = setInterval(() => {
-    const timeUntilHalloween = moment(HALLOWEEN_DATE).fromNow(true);
-    const minutesUntilHalloween = moment(HALLOWEEN_DATE).diff(
-      moment(),
-      'minutes'
-    );
-    if (minutesUntilHalloween < 0) {
-      clearInterval(halloweenTimer);
-      readyClient.user.setActivity('');
-      return;
-    }
+  readyClient.user.setActivity('Trick or Treat until you DIE', {
+    type: ActivityType.Custom,
+  });
 
-    readyClient.user.setActivity(`${timeUntilHalloween} until Halloween`, {
-      type: ActivityType.Custom,
-    });
+  const halloweenTimer = setInterval(() => {
+    if (configCache.endDate) {
+      const timeUntilHalloween = moment(configCache.endDate).fromNow(true);
+
+      const minutesUntilHalloween = moment(configCache.endDate).diff(
+        moment(),
+        'minutes'
+      );
+
+      if (minutesUntilHalloween < 0) {
+        clearInterval(halloweenTimer);
+
+        readyClient.user.setActivity('Trick Or Treat until you DIE', {
+          type: ActivityType.Custom,
+        });
+
+        return;
+      }
+
+      readyClient.user.setActivity(`${timeUntilHalloween} until Halloween`, {
+        type: ActivityType.Custom,
+      });
+    } else {
+      readyClient.user.setActivity('Trick Or Treat until you DIE', {
+        type: ActivityType.Custom,
+      });
+    }
   }, 60 * 1000);
 });
 
@@ -614,7 +630,7 @@ client.on(Events.InteractionCreate, async interaction => {
     let lbString = '';
 
     players.forEach((player, i) => {
-      lbString += `**${page === 1 ? i + 1 : (page - 1) * 10 + (i + 1)}**. <@${player.id}> - ${player.candy} 🍬\n`;
+      lbString += `**${page === 1 ? i + 1 : (page - 1) * 10 + (i + 1)}**. <@${player.id}> - ${!player.isDead ? `${player.candy} 🍬` : '💀'}\n`;
     });
 
     eventEmbed.setDescription(lbString);
@@ -884,6 +900,26 @@ client.on(Events.InteractionCreate, async interaction => {
       });
       return;
     }
+  }
+
+  if (interaction.commandName === 'reset-all') {
+    await interaction.deferReply({
+      ephemeral: true,
+    });
+
+    const gameReset = await PlayerManager.resetAll();
+
+    let answer = '';
+    if (gameReset) {
+      answer = 'Successfully reset trick or treaters';
+    } else {
+      answer = 'Could not reset trick or treaters, check logs';
+    }
+
+    await interaction.editReply({
+      content: answer,
+    });
+    return;
   }
 });
 
