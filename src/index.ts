@@ -25,11 +25,11 @@ import {CategoryName} from './models/PromptCategory';
 import moment = require('moment');
 import PlayerManager from './classes/PlayerManager';
 import Config from './models/Config';
-import ConfigManager from './classes/ConfigManager';
+import {getConfig, updateConfig} from './classes/ConfigManager';
+import {canTot, timeToTot} from './helpers/player-helper';
 
 // Setup
 let configCache: Config;
-const HALLOWEEN_DATE = '2024-10-31';
 
 const DISC_VARS = ['TOKEN', 'CLIENTID', 'WEBHOOK_URL'];
 
@@ -41,33 +41,6 @@ DISC_VARS.forEach(discVar => {
 
 // Should move this somewhere else to clean it up
 // but yolo
-const canTot = (player: Player) => {
-  let canAttempt = false;
-
-  if (
-    player.gatherAttempts > 0 &&
-    !moment().isSameOrAfter(
-      moment(player.latestAttempt).add(
-        configCache.cooldownTime,
-        configCache.cooldownUnit as moment.unitOfTime.DurationConstructor
-      )
-    )
-  ) {
-    canAttempt = false;
-  } else {
-    canAttempt = true;
-  }
-  return canAttempt;
-};
-
-const timeToTot = (player: Player) => {
-  return moment(player.latestAttempt)
-    .add(
-      configCache.cooldownTime,
-      configCache.cooldownUnit as moment.unitOfTime.DurationConstructor
-    )
-    .fromNow(true);
-};
 
 const client = new Client({
   intents: [
@@ -86,14 +59,14 @@ const client = new Client({
 
 const rest = new REST({version: '10'}).setToken(process.env.TOKEN!);
 
-(async () => {
+void (async () => {
   try {
     console.info(`Refreshing ${Object.keys(commands).length} commands.`);
     const data = (await rest.put(
       Routes.applicationCommands(process.env.CLIENTID!),
       {
         body: commands.map(command => command.toJSON()),
-      }
+      },
     )) as string[];
     console.info(`Successfully reloaded ${data.length} (/) commands`);
   } catch (e) {
@@ -108,10 +81,11 @@ client.once(Events.ClientReady, async readyClient => {
   console.info(`Online as ${botUser.tag}`);
   await db.authenticate();
 
-  configCache = await ConfigManager.getConfig();
-  readyClient.user.setActivity('Trick or Treat until you DIE', {
-    type: ActivityType.Custom,
-  });
+  try {
+    configCache = await getConfig();
+  } catch (e) {
+    console.error('Could not get a config');
+  }
 
   const halloweenTimer = setInterval(() => {
     if (configCache.endDate) {
@@ -119,13 +93,13 @@ client.once(Events.ClientReady, async readyClient => {
 
       const minutesUntilHalloween = moment(configCache.endDate).diff(
         moment(),
-        'minutes'
+        'minutes',
       );
 
       if (minutesUntilHalloween < 0) {
         clearInterval(halloweenTimer);
 
-        readyClient.user.setActivity('Trick Or Treat until you DIE', {
+        readyClient.user.setActivity('Trick Or Treat or you DIE', {
           type: ActivityType.Custom,
         });
 
@@ -136,15 +110,16 @@ client.once(Events.ClientReady, async readyClient => {
         type: ActivityType.Custom,
       });
     } else {
-      readyClient.user.setActivity('Trick Or Treat until you DIE', {
-        type: ActivityType.Custom,
+      // More to do here
+      readyClient.user.setActivity('...', {
+        type: ActivityType.Watching,
       });
     }
   }, 60 * 1000);
 });
 
 client.on(Events.InteractionCreate, async interaction => {
-  if (!interaction.isCommand()) return;
+  if (!interaction.isChatInputCommand()) return;
   if (interaction.user.bot) return;
 
   const eventEmbed = new EmbedBuilder().setColor(ColorEnums.base);
@@ -194,10 +169,10 @@ client.on(Events.InteractionCreate, async interaction => {
       ephemeral: true,
     });
 
-    if (
-      !interaction.options.get('item')?.value &&
-      !interaction.options.get('value')?.value
-    ) {
+    const item = interaction.options.getString('item');
+    const value = interaction.options.getString('value');
+
+    if (!item && !value) {
       eventEmbed.setTitle('Could not update');
       eventEmbed.setDescription('Could not find item or value');
       await interaction.editReply({
@@ -206,9 +181,8 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
-    configCache = await ConfigManager.updateConfig({
-      [interaction.options.get('item')?.value as string]:
-        interaction.options.get('value')?.value,
+    configCache = await updateConfig({
+      [item as keyof Config]: value,
     });
 
     eventEmbed.setTitle('Game Config Updated');
@@ -296,7 +270,7 @@ client.on(Events.InteractionCreate, async interaction => {
         eventEmbed.setTitle('You leave to trick or treat');
         eventEmbed.setColor(ColorEnums.loss);
         eventEmbed.setDescription(
-          `🏠🌲🏠🌲🏠🌲 \n🏃‍♀️  🏃 🏃‍\n🌲🏠🌲🏠🌲🏠\n\nDo be careful out there...`
+          `🏠🌲🏠🌲🏠🌲 \n🏃‍♀️  🏃 🏃‍\n🌲🏠🌲🏠🌲🏠\n\nDo be careful out there...`,
         );
         eventEmbed.setFooter({
           text: 'Use the /trick-or-treat command to collect candy',
@@ -314,7 +288,7 @@ client.on(Events.InteractionCreate, async interaction => {
     } else {
       eventEmbed.setTitle('You are already trick or treating');
       eventEmbed.setDescription(
-        'No need to go out again,\ninstead use the /trick-or-treat  command to gather candy'
+        'No need to go out again,\ninstead use the /trick-or-treat  command to gather candy',
       );
       await interaction.editReply({
         embeds: [eventEmbed],
@@ -368,7 +342,7 @@ client.on(Events.InteractionCreate, async interaction => {
     if (!currentPlayer) {
       eventEmbed.setTitle('You are not trick or treating');
       eventEmbed.setDescription(
-        'Use the go-out command to begin trick or treating'
+        'Use the go-out command to begin trick or treating',
       );
       await interaction.editReply({
         embeds: [eventEmbed],
@@ -379,7 +353,7 @@ client.on(Events.InteractionCreate, async interaction => {
     if (currentPlayer.isDead) {
       eventEmbed.setTitle('YOU ARE ██DEAD');
       eventEmbed.setDescription(
-        'You cannot trick or treat anymore... But maybe there is something else you can do.'
+        'You cannot trick or treat anymore... But maybe there is something else you can do.',
       );
       eventEmbed.setFooter({
         text: `Died at ${new Date(currentPlayer.latestAttempt).toLocaleString()}`,
@@ -391,10 +365,10 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     if (configCache.cooldownEnabled) {
-      if (!canTot(currentPlayer)) {
+      if (!canTot(currentPlayer, configCache)) {
         eventEmbed.setTitle('Eager are we?');
         eventEmbed.setDescription(
-          `Too bad.\nYou must wait **${timeToTot(currentPlayer)}** before you can trick or treat again...`
+          `Too bad.\nYou must wait **${timeToTot(currentPlayer, configCache)}** before you can trick or treat again...`,
         );
         eventEmbed.setFooter({
           text: `You have ${currentPlayer.candy} 🍬 • you can also check your backpack to see when you can trick or treat again`,
@@ -433,12 +407,12 @@ client.on(Events.InteractionCreate, async interaction => {
         if (!game.gain) {
           updatedPlayer = await PlayerManager.takePlayerCandy(
             currentPlayer,
-            game.amount
+            game.amount,
           );
         } else {
           updatedPlayer = await PlayerManager.givePlayerCandy(
             currentPlayer,
-            game.amount
+            game.amount,
           );
         }
 
@@ -514,9 +488,9 @@ client.on(Events.InteractionCreate, async interaction => {
         Math.floor(Math.random() * FALSE_STATUSES.length)
       ].toUpperCase();
 
-    let canTotString = canTot(currentPlayer)
+    let canTotString = canTot(currentPlayer, configCache)
       ? 'You can trick or treat again'
-      : `Time until you can trick or treat again: ${timeToTot(currentPlayer)}`;
+      : `Time until you can trick or treat again: ${timeToTot(currentPlayer, configCache)}`;
 
     let status = `You are feeling **${randomStatus}**...`;
 
@@ -541,9 +515,9 @@ client.on(Events.InteractionCreate, async interaction => {
       eventEmbed.setColor(ColorEnums.dead);
       status = '**YOU ARE ██DEAD**\n\nYou are feeling **HUNGRY**...';
 
-      canTotString = canTot(currentPlayer)
+      canTotString = canTot(currentPlayer, configCache)
         ? 'You can ███ again...'
-        : `Time until you can ███ again: ${timeToTot(currentPlayer)}`;
+        : `Time until you can ███ again: ${timeToTot(currentPlayer, configCache)}`;
 
       statFields = [
         {
@@ -610,7 +584,7 @@ client.on(Events.InteractionCreate, async interaction => {
     if (wantedPage > totalPages) {
       eventEmbed.setTitle('No page found');
       eventEmbed.setDescription(
-        `There are only ${totalPages} leaderboard pages`
+        `There are only ${totalPages} leaderboard pages`,
       );
       await interaction.editReply({
         embeds: [eventEmbed],
@@ -688,7 +662,7 @@ client.on(Events.InteractionCreate, async interaction => {
     if (!currentPlayer) {
       eventEmbed.setTitle('You are not trick or treating');
       eventEmbed.setDescription(
-        'Use the go-out command to begin trick or treating'
+        'Use the go-out command to begin trick or treating',
       );
       await interaction.editReply({
         embeds: [eventEmbed],
@@ -708,10 +682,10 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     if (configCache.cooldownEnabled) {
-      if (!canTot(currentPlayer)) {
+      if (!canTot(currentPlayer, configCache)) {
         eventEmbed.setTitle('No█ y█t...');
         eventEmbed.setDescription(
-          `You must wait **${timeToTot(currentPlayer)}** before you can █at again.`
+          `You must wait **${timeToTot(currentPlayer, configCache)}** before you can █at again.`,
         );
         eventEmbed.setFooter({
           text: `You have ██ten ${currentPlayer.destroyedCandy} 🍬 • you can also check your backpack to see when you can ea█ again`,
@@ -770,7 +744,7 @@ client.on(Events.InteractionCreate, async interaction => {
     } = await PlayerManager.eatOtherPlayerCandy(
       currentPlayer,
       targetPlayer,
-      potentialVictim
+      potentialVictim,
     );
 
     eventEmbed.setTitle('You ███');
@@ -842,7 +816,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
     const newStory = await StoryTeller.addStory(
       category as CategoryName,
-      content as string
+      content as string,
     );
 
     if (!newStory) {
@@ -855,7 +829,7 @@ client.on(Events.InteractionCreate, async interaction => {
     } else {
       eventEmbed.setTitle('Story added');
       eventEmbed.setDescription(
-        `Category: ${category}\nStory: ${newStory.content}`
+        `Category: ${category}\nStory: ${newStory.content}`,
       );
       eventEmbed.setFooter({
         text: `ID: ${newStory.id}`,
@@ -893,7 +867,7 @@ client.on(Events.InteractionCreate, async interaction => {
     } else {
       eventEmbed.setTitle('Story Deleted');
       eventEmbed.setDescription(
-        `Category: ${storyDeleted.category.name}\nStory: ${storyDeleted.content}`
+        `Category: ${storyDeleted.category.name}\nStory: ${storyDeleted.content}`,
       );
       await interaction.editReply({
         embeds: [eventEmbed],

@@ -28,7 +28,7 @@ export enum TIMELINE_EVENT {
   START = 'started',
   GAIN = 'gained',
   LOST = ' lost',
-  LOSTALL = 'lost all',
+  LOST_ALL = 'lost all',
   NOTHING = 'nothing',
   DIED = 'died',
 }

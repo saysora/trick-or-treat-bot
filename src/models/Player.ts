@@ -4,36 +4,36 @@ import {Column, DataType, Model, PrimaryKey, Table} from 'sequelize-typescript';
   tableName: 'players',
   timestamps: false,
 })
-export default class Player extends Model<Partial<Player>> {
+export default class Player extends Model<Player, Partial<Player>> {
   @PrimaryKey
   @Column
-  id: string;
+  declare id: string;
 
   @Column
-  serverId: string;
+  declare serverId: string;
 
   @Column
-  isDead: boolean;
+  declare isDead: boolean;
 
   @Column({
     type: DataType.DATE,
   })
-  latestAttempt: Date;
+  declare latestAttempt: Date;
 
   // Main player stats
   @Column
-  candy: number;
+  declare candy: number;
 
   @Column
-  gatherAttempts: number;
+  declare gatherAttempts: number;
 
   @Column
-  lostCandyCount: number;
+  declare lostCandyCount: number;
 
   @Column
-  allCandyLostCount: number;
+  declare allCandyLostCount: number;
 
   // Undead player stats
   @Column
-  destroyedCandy: number;
+  declare destroyedCandy: number;
 }

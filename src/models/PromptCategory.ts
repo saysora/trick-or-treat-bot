@@ -22,18 +22,21 @@ export enum CategoryName {
   tableName: 'prompt_categories',
   timestamps: false,
 })
-export default class PromptCategory extends Model<PromptCategory> {
+export default class PromptCategory extends Model<
+  PromptCategory,
+  Partial<PromptCategory>
+> {
   @PrimaryKey
   @Column({
     type: DataType.UUIDV4,
   })
-  id: string;
+  declare id: string;
 
   @Column({
     type: DataType.STRING,
   })
-  name: keyof typeof CategoryName;
+  declare name: keyof typeof CategoryName;
 
   @HasMany(() => Prompt)
-  prompts: Prompt[];
+  declare prompts: Prompt[];
 }
