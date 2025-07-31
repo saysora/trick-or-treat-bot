@@ -12,13 +12,7 @@ import {
   User,
 } from 'discord.js';
 import commands from './commands';
-import {
-  ColorEnums,
-  FALSE_STATUSES,
-  isAfterDate,
-  isBeforeDate,
-  randomChance,
-} from './constants';
+import {ColorEnums, randomChance, TIMELINE_EVENT} from './constants';
 import Player from './models/Player';
 import StoryTeller from './classes/StoryTeller';
 import {CategoryName} from './models/PromptCategory';
@@ -26,7 +20,15 @@ import moment = require('moment');
 import PlayerManager from './classes/PlayerManager';
 import Config from './models/Config';
 import {getConfig, updateConfig} from './classes/ConfigManager';
-import {canTot, timeToTot} from './helpers/player-helper';
+import {
+  canTot,
+  createPlayer,
+  getPlayer,
+  timeToTot,
+} from './helpers/player-helper';
+import {isAfterDate, isBeforeDate} from './helpers/time';
+import {beginEmbed, getBackpack} from './helpers/embeds';
+import TimelineEvent from './models/TimelineEvent';
 
 // Setup
 let configCache: Config;
@@ -258,30 +260,32 @@ client.on(Events.InteractionCreate, async interaction => {
 
     await interaction.deferReply();
 
-    const isCurrentPlayer = await PlayerManager.getPlayer(interaction.user.id);
+    const isCurrentPlayer = await getPlayer(interaction.user.id);
+
+    let embed = eventEmbed;
 
     if (!isCurrentPlayer) {
       try {
-        await PlayerManager.createPlayer({
+        await createPlayer({
           id: interaction.user.id,
           serverId: interaction.guildId!,
         });
 
-        eventEmbed.setTitle('You leave to trick or treat');
-        eventEmbed.setColor(ColorEnums.loss);
-        eventEmbed.setDescription(
-          `🏠🌲🏠🌲🏠🌲 \n🏃‍♀️  🏃 🏃‍\n🌲🏠🌲🏠🌲🏠\n\nDo be careful out there...`,
-        );
-        eventEmbed.setFooter({
-          text: 'Use the /trick-or-treat command to collect candy',
+        embed = beginEmbed();
+        // This is the moment they began
+        await TimelineEvent.create({
+          playerId: interaction.user.id,
+          eventType: TIMELINE_EVENT.START,
+          roll: 0,
+          candyAmount: 0,
         });
       } catch (e) {
-        eventEmbed.setTitle('Something went wrong');
-        eventEmbed.setDescription('Contact saysora');
+        embed.setTitle('Something went wrong');
+        embed.setDescription('Contact saysora');
         console.error(e);
       } finally {
         await interaction.editReply({
-          embeds: [eventEmbed],
+          embeds: [embed],
         });
       }
       return;
@@ -337,7 +341,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
     eventEmbed.setTitle('Trick or Treat');
 
-    const currentPlayer = await PlayerManager.getPlayer(interaction.user.id);
+    const currentPlayer = await getPlayer(interaction.user.id);
 
     if (!currentPlayer) {
       eventEmbed.setTitle('You are not trick or treating');
@@ -474,73 +478,20 @@ client.on(Events.InteractionCreate, async interaction => {
       ephemeral: true,
     });
 
-    const currentPlayer = await PlayerManager.getPlayer(interaction.user.id);
+    const currentPlayer = await getPlayer(interaction.user.id);
 
     if (!currentPlayer) {
       await interaction.editReply({
-        content: `You aren not trick-or-treating yet! Use the /go-out command to start`,
+        content:
+          'You aren not trick-or-treating yet! Use the /go-out command to start',
       });
       return;
     }
 
-    const randomStatus =
-      FALSE_STATUSES[
-        Math.floor(Math.random() * FALSE_STATUSES.length)
-      ].toUpperCase();
-
-    let canTotString = canTot(currentPlayer, configCache)
-      ? 'You can trick or treat again'
-      : `Time until you can trick or treat again: ${timeToTot(currentPlayer, configCache)}`;
-
-    let status = `You are feeling **${randomStatus}**...`;
-
-    let statFields = [
-      {
-        name: 'Candy',
-        value: `**${currentPlayer.candy}**`,
-      },
-      {
-        name: 'Candy Lost',
-        value: `**${currentPlayer.lostCandyCount}**`,
-        inline: true,
-      },
-      {
-        name: 'Gather Attempts',
-        value: `**${currentPlayer.gatherAttempts}**`,
-        inline: true,
-      },
-    ];
-
-    if (currentPlayer.isDead) {
-      eventEmbed.setColor(ColorEnums.dead);
-      status = '**YOU ARE ██DEAD**\n\nYou are feeling **HUNGRY**...';
-
-      canTotString = canTot(currentPlayer, configCache)
-        ? 'You can ███ again...'
-        : `Time until you can ███ again: ${timeToTot(currentPlayer, configCache)}`;
-
-      statFields = [
-        {
-          name: 'Candy ██ten',
-          value: `**${currentPlayer.destroyedCandy}**`,
-        },
-        ...statFields.slice(1),
-      ];
-    }
-
-    eventEmbed.setThumbnail(interaction.user.displayAvatarURL());
-    eventEmbed.setDescription(`
-      ## Backpack\n${status}\n\n
-    `);
-
-    eventEmbed.setFooter({
-      text: `${canTotString}`,
-    });
-
-    eventEmbed.setFields(statFields);
+    const backpack = await getBackpack(interaction.user, configCache);
 
     await interaction.editReply({
-      embeds: [eventEmbed],
+      embeds: [backpack],
     });
 
     return;
@@ -657,7 +608,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
     await interaction.deferReply();
 
-    const currentPlayer = await PlayerManager.getPlayer(interaction.user.id);
+    const currentPlayer = await getPlayer(interaction.user.id);
 
     if (!currentPlayer) {
       eventEmbed.setTitle('You are not trick or treating');
@@ -713,7 +664,7 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
-    const targetPlayer = await PlayerManager.getPlayer(target);
+    const targetPlayer = await getPlayer(target);
 
     if (!targetPlayer) {
       await interaction.editReply({

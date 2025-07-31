@@ -8,14 +8,6 @@ interface CreatePlayerProps {
 }
 
 export default class PlayerManager {
-  static async getPlayer(id: string): Promise<Player | null> {
-    const player = await Player.findByPk(id);
-    if (!player) {
-      return null;
-    }
-    return player;
-  }
-
   static async getRandomLivingPlayer(id: string[]) {
     const player = await Player.findOne({
       where: {
@@ -34,18 +26,6 @@ export default class PlayerManager {
     return player;
   }
 
-  static async createPlayer(player: CreatePlayerProps): Promise<Player | null> {
-    try {
-      const newPlayer = await Player.create({
-        id: player.id,
-        serverId: player.serverId,
-      });
-      return newPlayer;
-    } catch (e) {
-      return null;
-    }
-  }
-
   static async removePlayer(id: string): Promise<number | null> {
     try {
       const removedPlayer = await Player.destroy({
@@ -61,7 +41,7 @@ export default class PlayerManager {
 
   static async givePlayerCandy(
     player: Player,
-    amount: number
+    amount: number,
   ): Promise<Player> {
     player.latestAttempt = new Date();
     player.gatherAttempts += 1;
@@ -74,7 +54,7 @@ export default class PlayerManager {
 
   static async takePlayerCandy(
     player: Player,
-    amount: number
+    amount: number,
   ): Promise<Player> {
     player.latestAttempt = new Date();
     player.gatherAttempts += 1;
@@ -98,7 +78,7 @@ export default class PlayerManager {
   static async eatOtherPlayerCandy(
     player: Player,
     target: Player,
-    potentialVictim: Player
+    potentialVictim: Player,
   ) {
     const chance = randomChance(0, 100).number;
     let actualTarget: Player;

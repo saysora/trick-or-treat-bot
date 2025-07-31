@@ -13,6 +13,8 @@ export async function updateConfig(values: Partial<Config>): Promise<Config> {
 
   config.set(values);
 
+  await config.save();
+
   await config.reload();
 
   return config;

@@ -20,6 +20,19 @@ export default class Player extends Model<Player, Partial<Player>> {
   })
   declare latestAttempt: Date;
 
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  declare status: string | null;
+
+  @Column({
+    type: DataType.DATE,
+    allowNull: true,
+    field: 'status_set',
+  })
+  statusSet: Date;
+
   // Main player stats
   @Column
   declare candy: number;

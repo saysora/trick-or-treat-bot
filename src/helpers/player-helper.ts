@@ -1,6 +1,31 @@
 import moment = require('moment');
 import Player from '../models/Player';
 import Config from '../models/Config';
+import {getRandomStatus} from './statuses';
+
+export async function createPlayer({
+  id,
+  serverId,
+}: {
+  id: string;
+  serverId: string;
+}) {
+  const newPlayer = Player.build({
+    id,
+    serverId,
+    status: getRandomStatus(),
+  });
+
+  await newPlayer.save();
+
+  return newPlayer;
+}
+
+export async function getPlayer(id: string) {
+  const player = await Player.findByPk(id);
+
+  return player;
+}
 
 export function canTot(player: Player, config: Config) {
   let canAttempt = false;
