@@ -13,7 +13,7 @@ import {
   User,
 } from 'discord.js';
 import commands from './commands';
-import {ColorEnums, randomChance, TIMELINE_EVENT} from './constants';
+import {ColorEnums, TIMELINE_EVENT} from './constants';
 import Player from './models/Player';
 import StoryTeller from './classes/StoryTeller';
 import {CategoryName} from './models/PromptCategory';
@@ -21,15 +21,23 @@ import moment = require('moment');
 import PlayerManager from './classes/PlayerManager';
 import Config from './models/Config';
 import {getConfig, updateConfig} from './classes/ConfigManager';
+import {canTot, createPlayer, getPlayer} from './helpers/player-helper';
 import {
-  canTot,
-  createPlayer,
-  getPlayer,
-  timeToTot,
-} from './helpers/player-helper';
-import {badEmbed, beginEmbed, deadEmbed, getBackpack} from './helpers/embeds';
+  alreadyPlaying,
+  badEmbed,
+  beginEmbed,
+  deadEmbed,
+  eatOnCooldown,
+  failedToEat,
+  getBackpack,
+  notDeadEat,
+  notPlaying,
+  totOnCooldown,
+} from './helpers/embeds';
 import TimelineEvent from './models/TimelineEvent';
 import {isGameActive} from './helpers/configcheck';
+import {randomChance2} from './helpers/chance';
+import {storyByCategory, storyCategory} from './helpers/story';
 
 // Setup
 let configCache: Config;
@@ -66,12 +74,9 @@ const rest = new REST({version: '10'}).setToken(process.env.TOKEN!);
 void (async () => {
   try {
     console.info(`Refreshing ${Object.keys(commands).length} commands.`);
-    const data = (await rest.put(
-      Routes.applicationCommands(process.env.CLIENTID!),
-      {
-        body: commands.map(command => command.toJSON()),
-      },
-    )) as string[];
+    const data = (await rest.put(Routes.applicationCommands(CLIENTID!), {
+      body: commands.map(command => command.toJSON()),
+    })) as string[];
     console.info(`Successfully reloaded ${data.length} (/) commands`);
   } catch (e) {
     console.error(e);
@@ -246,6 +251,7 @@ client.on(Events.InteractionCreate, async interaction => {
         await createPlayer({
           id: interaction.user.id,
           serverId: interaction.guildId!,
+          name: interaction.user.username,
         });
 
         embed = beginEmbed();
@@ -266,12 +272,8 @@ client.on(Events.InteractionCreate, async interaction => {
       }
       return;
     } else {
-      eventEmbed.setTitle('You are already trick or treating');
-      eventEmbed.setDescription(
-        'No need to go out again,\ninstead use the /trick-or-treat  command to gather candy',
-      );
       await interaction.editReply({
-        embeds: [eventEmbed],
+        embeds: [alreadyPlaying()],
       });
     }
     return;
@@ -295,12 +297,8 @@ client.on(Events.InteractionCreate, async interaction => {
     const currentPlayer = await getPlayer(interaction.user.id);
 
     if (!currentPlayer) {
-      eventEmbed.setTitle('You are not trick or treating');
-      eventEmbed.setDescription(
-        'Use the go-out command to begin trick or treating',
-      );
       await interaction.editReply({
-        embeds: [eventEmbed],
+        embeds: [notPlaying()],
       });
       return;
     }
@@ -314,22 +312,25 @@ client.on(Events.InteractionCreate, async interaction => {
 
     if (configCache.cooldownEnabled) {
       if (!canTot(currentPlayer, configCache)) {
-        eventEmbed.setTitle('Eager are we?');
-        eventEmbed.setDescription(
-          `Too bad.\nYou must wait **${timeToTot(currentPlayer, configCache)}** before you can trick or treat again...`,
-        );
-        eventEmbed.setFooter({
-          text: `You have ${currentPlayer.candy} 🍬 • you can also check your backpack to see when you can trick or treat again`,
-        });
         await interaction.editReply({
-          embeds: [eventEmbed],
+          embeds: [totOnCooldown(currentPlayer, configCache)],
         });
         return;
       }
     }
 
-    const chance = randomChance(1, 1000);
-    const game = await StoryTeller.gamePrompt(chance.number);
+    const chance = randomChance2(1, 1000);
+    const game = await StoryTeller.gamePrompt(chance);
+
+    const {category, candy, color} = storyCategory(chance);
+    const story = await storyByCategory(category);
+
+    if (!story) {
+      throw new Error('Could not get a story');
+    }
+
+    console.log({category, candy, color});
+    console.log(JSON.stringify(story, null, 2));
 
     eventEmbed.setColor(game.story.color);
     eventEmbed.setDescription(game.story.content);
@@ -487,38 +488,23 @@ client.on(Events.InteractionCreate, async interaction => {
     const currentPlayer = await getPlayer(interaction.user.id);
 
     if (!currentPlayer) {
-      eventEmbed.setTitle('You are not trick or treating');
-      eventEmbed.setDescription(
-        'Use the go-out command to begin trick or treating',
-      );
       await interaction.editReply({
-        embeds: [eventEmbed],
+        embeds: [notPlaying()],
       });
       return;
     }
 
-    eventEmbed.setColor(ColorEnums.undead);
-
     if (!currentPlayer.isDead) {
-      eventEmbed.setTitle('Huh?');
-      eventEmbed.setDescription(`W█at d█ you █e█n?`);
       await interaction.editReply({
-        embeds: [eventEmbed],
+        embeds: [notDeadEat()],
       });
       return;
     }
 
     if (configCache.cooldownEnabled) {
       if (!canTot(currentPlayer, configCache)) {
-        eventEmbed.setTitle('No█ y█t...');
-        eventEmbed.setDescription(
-          `You must wait **${timeToTot(currentPlayer, configCache)}** before you can █at again.`,
-        );
-        eventEmbed.setFooter({
-          text: `You have ██ten ${currentPlayer.destroyedCandy} 🍬 • you can also check your backpack to see when you can ea█ again`,
-        });
         await interaction.editReply({
-          embeds: [eventEmbed],
+          embeds: [eatOnCooldown(currentPlayer, configCache)],
         });
         return;
       }
@@ -555,9 +541,8 @@ client.on(Events.InteractionCreate, async interaction => {
     ]);
 
     if (!potentialVictim) {
-      eventEmbed.setDescription("Coul█ not █at.\n\nThat did█'t ██em to █ork");
       await interaction.editReply({
-        embeds: [eventEmbed],
+        embeds: [failedToEat()],
       });
       return;
     }

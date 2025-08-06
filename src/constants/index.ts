@@ -29,3 +29,13 @@ export enum TIMELINE_EVENT {
   NOTHING = 'nothing',
   DIED = 'died',
 }
+
+export enum StoryCategory {
+  singularWin = 'singularwin',
+  win = 'win',
+  critWin = 'critwin',
+  falseWin = 'falsewin',
+  loss = 'loss',
+  totalLoss = 'totalloss',
+  gameover = 'gameover',
+}

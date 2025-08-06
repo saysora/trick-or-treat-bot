@@ -33,6 +33,9 @@ export default class Player extends Model<Player, Partial<Player>> {
   })
   statusSet: Date;
 
+  @Column
+  declare name: string;
+
   // Main player stats
   @Column
   declare candy: number;

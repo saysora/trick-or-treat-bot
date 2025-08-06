@@ -1,9 +1,10 @@
 import {ColorResolvable, EmbedBuilder, User} from 'discord.js';
-import {ColorEnums} from '../constants';
+import {ColorEnums, StoryCategory} from '../constants';
 import Config from '../models/Config';
 import {canTot, getPlayer, timeToTot} from './player-helper';
 import {determineStatusType} from './statuses';
 import Player from '../models/Player';
+import Prompt from '../models/Prompt';
 
 interface EmbedOptions {
   title?: string;
@@ -148,6 +149,79 @@ export async function getBackpack(user: User, config: Config) {
     thumbnail: user.displayAvatarURL(),
     fields: statFields,
     footer: footerMessage,
+  });
+}
+
+export function storyEmbed(
+  story: Prompt,
+  category: StoryCategory,
+  color: ColorEnums,
+  player: Player,
+) {
+  const embed = createEmbed({
+    title: 'Trick or Treat',
+    description: story.content,
+    color,
+    footer: `You now have ${player.candy}`,
+  });
+
+  if (category === StoryCategory.gameover) {
+    embed.setFooter({text: 'You are DEAD'});
+  }
+
+  if (category === StoryCategory.totalLoss) {
+    embed.setFooter({
+      text: 'You now have 0 🍬',
+    });
+  }
+
+  return embed;
+}
+
+export function totOnCooldown(player: Player, config: Config) {
+  return createEmbed({
+    title: 'Eager are we?',
+    description: `Too bad.\nYou must wait **${timeToTot(player, config)}** before you can trick or treat again...`,
+    footer: `You have ${player.candy} 🍬 • you can also check your backpack to see when you can trick or treat again`,
+  });
+}
+
+export function eatOnCooldown(player: Player, config: Config) {
+  return createEmbed({
+    title: 'No█ y█t...',
+    color: ColorEnums.undead,
+    description: `You must wait **${timeToTot(player, config)}** before you can █at again.`,
+    footer: `You have ██ten ${player.destroyedCandy} 🍬 • you can also check your backpack to see when you can ea█ again`,
+  });
+}
+
+export function failedToEat() {
+  return createEmbed({
+    color: ColorEnums.undead,
+    description: "Coul█ not █at.\n\nThat did█'t ██em to █ork",
+  });
+}
+
+export function notDeadEat() {
+  return createEmbed({
+    title: 'Huh?',
+    color: ColorEnums.undead,
+    description: 'W█at d█ you █e█n?',
+  });
+}
+
+export function alreadyPlaying() {
+  return createEmbed({
+    title: 'You are already trick or treating',
+    description:
+      'No need to go out again,\ninstead use the /trick-or-treat command to gather candy',
+  });
+}
+
+export function notPlaying() {
+  return createEmbed({
+    title: 'You are not trick or treating',
+    description: 'Use the go-out command to begin trick-or-treating',
   });
 }
 

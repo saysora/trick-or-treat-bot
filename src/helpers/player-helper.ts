@@ -2,18 +2,22 @@ import moment = require('moment');
 import Player from '../models/Player';
 import Config from '../models/Config';
 import {getRandomStatus} from './statuses';
+import {Op, Sequelize} from 'sequelize';
 
 export async function createPlayer({
   id,
   serverId,
+  name,
 }: {
   id: string;
   serverId: string;
+  name: string;
 }) {
   const newPlayer = Player.build({
     id,
     serverId,
     status: getRandomStatus(),
+    name,
   });
 
   await newPlayer.save();
@@ -25,6 +29,19 @@ export async function getPlayer(id: string) {
   const player = await Player.findByPk(id);
 
   return player;
+}
+
+export async function getRandomOtherPlayer(id: string) {
+  const otherPlayer = await Player.findOne({
+    where: {
+      id: {
+        [Op.ne]: id,
+      },
+    },
+    order: Sequelize.literal('random()'),
+  });
+
+  return otherPlayer;
 }
 
 export function canTot(player: Player, config: Config) {

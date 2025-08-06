@@ -59,7 +59,7 @@ export default class StoryTeller {
       category: prompt.name,
       content: prompt.prompts?.[0].content.replace(
         /<AMOUNT>/g,
-        `**${candyCount} ${candyTerm}**`
+        `**${candyCount} ${candyTerm}**`,
       ),
     };
   }
