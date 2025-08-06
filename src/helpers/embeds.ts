@@ -3,6 +3,7 @@ import {ColorEnums} from '../constants';
 import Config from '../models/Config';
 import {canTot, getPlayer, timeToTot} from './player-helper';
 import {determineStatusType} from './statuses';
+import Player from '../models/Player';
 
 interface EmbedOptions {
   title?: string;
@@ -54,6 +55,25 @@ export function createEmbed({
   embed.setDescription(embedDescription);
 
   return embed;
+}
+
+export function beginEmbed() {
+  return new EmbedBuilder()
+    .setTitle('You leave to trick or treat')
+    .setColor(ColorEnums.loss)
+    .setDescription(
+      //eslint-disable-next-line
+      `🏠🌲🏠🌲🏠🌲 \n🏃‍♀️  🏃 🏃‍\n🌲🏠🌲🏠🌲🏠\n\nDo be careful out there...`,
+    )
+    .setFooter({
+      text: 'Use the /trick-or-treat command to collect candy',
+    });
+}
+
+export function badEmbed() {
+  return new EmbedBuilder()
+    .setTitle('Something went wrong')
+    .setDescription('Contact saysora');
 }
 
 export async function getBackpack(user: User, config: Config) {
@@ -131,15 +151,12 @@ export async function getBackpack(user: User, config: Config) {
   });
 }
 
-export function beginEmbed() {
-  return new EmbedBuilder()
-    .setTitle('You leave to trick or treat')
-    .setColor(ColorEnums.loss)
-    .setDescription(
-      //eslint-disable-next-line
-      `🏠🌲🏠🌲🏠🌲 \n🏃‍♀️  🏃 🏃‍\n🌲🏠🌲🏠🌲🏠\n\nDo be careful out there...`,
-    )
-    .setFooter({
-      text: 'Use the /trick-or-treat command to collect candy',
-    });
+export function deadEmbed(player: Player) {
+  return createEmbed({
+    title: 'YOU ARE ██DEAD',
+    color: ColorEnums.dead,
+    description:
+      'You cannot trick or treat anymore... But maybe there is something else you can do.',
+    footer: `Died at ${new Date(player.latestAttempt).toLocaleString()}`,
+  });
 }

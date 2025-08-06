@@ -15,13 +15,13 @@ const commands = [
     .setName('leaderboard')
     .setDescription('See who has the most candy')
     .addNumberOption(option =>
-      option.setName('page').setDescription('Page of the leaderboard to check')
+      option.setName('page').setDescription('Page of the leaderboard to check'),
     ),
   new SlashCommandBuilder()
     .setName('eat')
     .setDescription('███ █L███R█ █████')
     .addUserOption(option =>
-      option.setName('player').setDescription('██R███').setRequired(true)
+      option.setName('player').setDescription('██R███').setRequired(true),
     ),
 
   // Admin only commands
@@ -43,14 +43,14 @@ const commands = [
           {name: 'Cooldown Time Value', value: 'cooldownTime'},
           {name: 'Cooldown Time Unit', value: 'cooldownUnit'},
           {name: 'Game Start Date', value: 'startDate'},
-          {name: 'Game End Date', value: 'endDate'}
-        )
+          {name: 'Game End Date', value: 'endDate'},
+        ),
     )
     .addStringOption(option =>
       option
         .setName('value')
         .setDescription('Set config item value')
-        .setRequired(true)
+        .setRequired(true),
     )
     .setDefaultMemberPermissions(0),
   // Story commands
@@ -87,21 +87,21 @@ const commands = [
           {
             name: 'Game Over',
             value: CategoryName.gameover,
-          }
-        )
+          },
+        ),
     )
     .addStringOption(option =>
       option
         .setName('content')
         .setDescription('Content of the story')
-        .setRequired(true)
+        .setRequired(true),
     )
     .setDefaultMemberPermissions(0),
   new SlashCommandBuilder()
     .setName('story-delete')
     .setDescription('Delete a story from the list')
     .addStringOption(option =>
-      option.setName('id').setDescription('Id of the story').setRequired(true)
+      option.setName('id').setDescription('Id of the story').setRequired(true),
     )
     .setDefaultMemberPermissions(0),
   new SlashCommandBuilder()

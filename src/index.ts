@@ -6,6 +6,7 @@ import {
   EmbedBuilder,
   Events,
   GatewayIntentBits,
+  MessageFlags,
   Partials,
   REST,
   Routes,
@@ -26,17 +27,18 @@ import {
   getPlayer,
   timeToTot,
 } from './helpers/player-helper';
-import {isAfterDate, isBeforeDate} from './helpers/time';
-import {beginEmbed, getBackpack} from './helpers/embeds';
+import {badEmbed, beginEmbed, deadEmbed, getBackpack} from './helpers/embeds';
 import TimelineEvent from './models/TimelineEvent';
+import {isGameActive} from './helpers/configcheck';
 
 // Setup
 let configCache: Config;
 
-const DISC_VARS = ['TOKEN', 'CLIENTID', 'WEBHOOK_URL'];
+const {TOKEN, CLIENTID, WEBHOOK_URL} = process.env;
+const DISC_VARS = [TOKEN, CLIENTID, WEBHOOK_URL];
 
 DISC_VARS.forEach(discVar => {
-  if (!(discVar in process.env)) {
+  if (!discVar) {
     throw new Error(`Missing ${discVar}`);
   }
 });
@@ -184,7 +186,7 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     configCache = await updateConfig({
-      [item as keyof Config]: value,
+      [item as keyof Config]: value === 'null' ? null : value,
     });
 
     eventEmbed.setTitle('Game Config Updated');
@@ -223,37 +225,12 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   if (interaction.commandName === 'go-out') {
-    if (
-      process.env.GAME_CHANNEL_ID &&
-      interaction.channelId !== process.env.GAME_CHANNEL_ID
-    ) {
-      await interaction.reply({
-        ephemeral: true,
-        content: `You can only trick-or-treat in <#${process.env.GAME_CHANNEL_ID}>`,
-      });
-      return;
-    }
+    const {content, active} = isGameActive(configCache, interaction.channelId);
 
-    if (!configCache.enabled) {
+    if (!active) {
       await interaction.reply({
-        ephemeral: true,
-        content: "It's not time to trick or treat yet!",
-      });
-      return;
-    }
-
-    if (configCache.startDate && isBeforeDate(configCache.startDate)) {
-      await interaction.reply({
-        ephemeral: true,
-        content: `It's not time to trick or treat yet! You need to wait until ${moment(configCache.startDate, 'YYYY-MM-DD').format('MMMM Do')}`,
-      });
-      return;
-    }
-
-    if (configCache.endDate && isAfterDate(configCache.endDate)) {
-      await interaction.reply({
-        ephemeral: true,
-        content: 'It is too late to trick or treat. Halloween is over.',
+        content: content ?? 'Something went wrong',
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -280,8 +257,7 @@ client.on(Events.InteractionCreate, async interaction => {
           candyAmount: 0,
         });
       } catch (e) {
-        embed.setTitle('Something went wrong');
-        embed.setDescription('Contact saysora');
+        embed = badEmbed();
         console.error(e);
       } finally {
         await interaction.editReply({
@@ -302,37 +278,12 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   if (interaction.commandName === 'trick-or-treat') {
-    if (
-      process.env.GAME_CHANNEL_ID &&
-      interaction.channelId !== process.env.GAME_CHANNEL_ID
-    ) {
-      await interaction.reply({
-        ephemeral: true,
-        content: `You can only trick-or-treat in <#${process.env.GAME_CHANNEL_ID}>`,
-      });
-      return;
-    }
+    const {content, active} = isGameActive(configCache, interaction.channelId);
 
-    if (!configCache.enabled) {
+    if (!active) {
       await interaction.reply({
-        ephemeral: true,
-        content: "It's not time to trick or treat yet!",
-      });
-      return;
-    }
-
-    if (configCache.startDate && isBeforeDate(configCache.startDate)) {
-      await interaction.reply({
-        ephemeral: true,
-        content: `It's not time to trick or treat yet! You need to wait until ${moment(configCache.startDate, 'YYYY-MM-DD').format('MMMM Do')}`,
-      });
-      return;
-    }
-
-    if (configCache.endDate && isAfterDate(configCache.endDate)) {
-      await interaction.reply({
-        ephemeral: true,
-        content: 'It is too late to trick or treat. Halloween is over.',
+        content: content ?? 'Something went wrong',
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -355,15 +306,8 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     if (currentPlayer.isDead) {
-      eventEmbed.setTitle('YOU ARE ██DEAD');
-      eventEmbed.setDescription(
-        'You cannot trick or treat anymore... But maybe there is something else you can do.',
-      );
-      eventEmbed.setFooter({
-        text: `Died at ${new Date(currentPlayer.latestAttempt).toLocaleString()}`,
-      });
       await interaction.editReply({
-        embeds: [eventEmbed],
+        embeds: [deadEmbed(currentPlayer)],
       });
       return;
     }
@@ -439,37 +383,12 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   if (interaction.commandName === 'backpack') {
-    if (
-      process.env.GAME_CHANNEL_ID &&
-      interaction.channelId !== process.env.GAME_CHANNEL_ID
-    ) {
-      await interaction.reply({
-        ephemeral: true,
-        content: `You can only trick-or-treat in <#${process.env.GAME_CHANNEL_ID}>`,
-      });
-      return;
-    }
+    const {content, active} = isGameActive(configCache, interaction.channelId);
 
-    if (!configCache.enabled) {
+    if (!active) {
       await interaction.reply({
-        ephemeral: true,
-        content: "It's not time to trick or treat yet!",
-      });
-      return;
-    }
-
-    if (configCache.startDate && isBeforeDate(configCache.startDate)) {
-      await interaction.reply({
-        ephemeral: true,
-        content: `It's not time to trick or treat yet! You need to wait until ${moment(configCache.startDate, 'YYYY-MM-DD').format('MMMM Do')}`,
-      });
-      return;
-    }
-
-    if (configCache.endDate && isAfterDate(configCache.endDate)) {
-      await interaction.reply({
-        ephemeral: true,
-        content: 'It is too late to trick or treat. Halloween is over.',
+        content: content ?? 'Something went wrong',
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -498,29 +417,12 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   if (interaction.commandName === 'leaderboard') {
-    if (
-      process.env.GAME_CHANNEL_ID &&
-      interaction.channelId !== process.env.GAME_CHANNEL_ID
-    ) {
-      await interaction.reply({
-        ephemeral: true,
-        content: `You can only trick-or-treat in <#${process.env.GAME_CHANNEL_ID}>`,
-      });
-      return;
-    }
+    const {content, active} = isGameActive(configCache, interaction.channelId);
 
-    if (!configCache.enabled) {
+    if (!active) {
       await interaction.reply({
-        ephemeral: true,
-        content: "It's not time to trick or treat yet!",
-      });
-      return;
-    }
-
-    if (configCache.startDate && isBeforeDate(configCache.startDate)) {
-      await interaction.reply({
-        ephemeral: true,
-        content: `It's not time to trick or treat yet! You need to wait until ${moment(configCache.startDate, 'YYYY-MM-DD').format('MMMM Do')}`,
+        content: content ?? 'Something went wrong',
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -571,41 +473,15 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   if (interaction.commandName === 'eat') {
-    if (
-      process.env.GAME_CHANNEL_ID &&
-      interaction.channelId !== process.env.GAME_CHANNEL_ID
-    ) {
+    const {content, active} = isGameActive(configCache, interaction.channelId);
+
+    if (!active) {
       await interaction.reply({
-        ephemeral: true,
-        content: `You can only trick-or-treat in <#${process.env.GAME_CHANNEL_ID}>`,
+        content: content ?? 'Something went wrong',
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
-
-    if (!configCache.enabled) {
-      await interaction.reply({
-        ephemeral: true,
-        content: "It's not time to trick or treat yet!",
-      });
-      return;
-    }
-
-    if (configCache.startDate && isBeforeDate(configCache.startDate)) {
-      await interaction.reply({
-        ephemeral: true,
-        content: `It's not time to trick or treat yet! You need to wait until ${moment(configCache.startDate, 'YYYY-MM-DD').format('MMMM Do')}`,
-      });
-      return;
-    }
-
-    if (configCache.endDate && isAfterDate(configCache.endDate)) {
-      await interaction.reply({
-        ephemeral: true,
-        content: 'It is too late to trick or treat. Halloween is over.',
-      });
-      return;
-    }
-
     await interaction.deferReply();
 
     const currentPlayer = await getPlayer(interaction.user.id);
@@ -848,4 +724,4 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 });
 
-client.login(process.env.TOKEN!);
+void client.login(TOKEN);
