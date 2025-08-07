@@ -1,7 +1,7 @@
 import {Sequelize} from 'sequelize';
 import {ColorEnums, StoryCategory} from '../constants';
 import Prompt from '../models/Prompt';
-import {randomChance2} from './chance';
+import {randomChance} from './chance';
 import PromptCategory from '../models/PromptCategory';
 
 const critWin = 600;
@@ -31,17 +31,17 @@ export function storyCategory(num: number): CategoryCandyAndColor {
     case num >= critWin:
       category = StoryCategory.critWin;
       color = ColorEnums.win;
-      candy = randomChance2(critLowPayout, critHighPayout);
+      candy = randomChance(critLowPayout, critHighPayout);
       break;
     case num >= normWin && num < critWin:
       category = StoryCategory.win;
       color = ColorEnums.barelyWin;
-      candy = randomChance2(lowPayout, highPayout);
+      candy = randomChance(lowPayout, highPayout);
       break;
     case num >= normLoss && num < normWin:
       category = StoryCategory.loss;
       color = ColorEnums.loss;
-      candy = randomChance2(lowPayout + 1, critHighPayout);
+      candy = randomChance(lowPayout + 1, critHighPayout);
       break;
     case num > totalLoss && num < normLoss:
       category = StoryCategory.totalLoss;
@@ -54,7 +54,7 @@ export function storyCategory(num: number): CategoryCandyAndColor {
     default:
       category = StoryCategory.win;
       color = ColorEnums.base;
-      candy = randomChance2(lowPayout, highPayout);
+      candy = randomChance(lowPayout, highPayout);
   }
 
   if (candy === 0 && category === StoryCategory.win) {
