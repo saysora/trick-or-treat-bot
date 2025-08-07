@@ -310,7 +310,6 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
-    console.log({currentPlayer});
     if (currentPlayer.isDead) {
       await interaction.editReply({
         embeds: [deadEmbed(currentPlayer)],
