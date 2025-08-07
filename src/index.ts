@@ -13,15 +13,21 @@ import {
   User,
 } from 'discord.js';
 import commands from './commands';
-import {ColorEnums, TIMELINE_EVENT} from './constants';
+import {ColorEnums, StoryCategory, TIMELINE_EVENT} from './constants';
 import Player from './models/Player';
 import StoryTeller from './classes/StoryTeller';
-import {CategoryName} from './models/PromptCategory';
 import moment = require('moment');
 import PlayerManager from './classes/PlayerManager';
 import Config from './models/Config';
 import {getConfig, updateConfig} from './classes/ConfigManager';
-import {canTot, createPlayer, getPlayer} from './helpers/player-helper';
+import {
+  canTot,
+  createPlayer,
+  getPlayer,
+  killPlayer,
+  playerLoseAllCandy,
+  updatePlayerCandy,
+} from './helpers/player-helper';
 import {
   alreadyPlaying,
   badEmbed,
@@ -32,11 +38,12 @@ import {
   getBackpack,
   notDeadEat,
   notPlaying,
+  storyEmbed,
   totOnCooldown,
 } from './helpers/embeds';
 import TimelineEvent from './models/TimelineEvent';
 import {isGameActive} from './helpers/configcheck';
-import {randomChance2} from './helpers/chance';
+import {randomChance} from './helpers/chance';
 import {storyByCategory, storyCategory} from './helpers/story';
 
 // Setup
@@ -303,6 +310,7 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
+    console.log({currentPlayer});
     if (currentPlayer.isDead) {
       await interaction.editReply({
         embeds: [deadEmbed(currentPlayer)],
@@ -319,8 +327,7 @@ client.on(Events.InteractionCreate, async interaction => {
       }
     }
 
-    const chance = randomChance2(1, 1000);
-    const game = await StoryTeller.gamePrompt(chance);
+    const chance = randomChance(1, 1000);
 
     const {category, candy, color} = storyCategory(chance);
     const story = await storyByCategory(category);
@@ -329,56 +336,54 @@ client.on(Events.InteractionCreate, async interaction => {
       throw new Error('Could not get a story');
     }
 
-    console.log({category, candy, color});
-    console.log(JSON.stringify(story, null, 2));
+    let updatedPlayer: Player = currentPlayer;
+    let awardCandy = true;
+    let event: TIMELINE_EVENT = TIMELINE_EVENT.LOST;
 
-    eventEmbed.setColor(game.story.color);
-    eventEmbed.setDescription(game.story.content);
+    if (category === StoryCategory.gameover) {
+      updatedPlayer = await killPlayer(currentPlayer);
+      awardCandy = false;
+      event = TIMELINE_EVENT.DIED;
+    }
 
-    let updatedPlayer: Player;
+    if (category === StoryCategory.totalLoss) {
+      updatedPlayer = await playerLoseAllCandy(currentPlayer);
+      awardCandy = false;
+      event = TIMELINE_EVENT.LOST_ALL;
+    }
 
-    switch (true) {
-      case game.story.category === CategoryName.gameover: {
-        updatedPlayer = await PlayerManager.killPlayer(currentPlayer);
-        eventEmbed.setFooter({
-          text: 'You are DEAD',
-        });
-        break;
-      }
-      case game.story.category === CategoryName.totalLoss: {
-        updatedPlayer = await PlayerManager.playerLoseAllCandy(currentPlayer);
-        eventEmbed.setFooter({
-          text: 'You now have 0 🍬',
-        });
-        break;
-      }
-      default: {
-        if (!game.gain) {
-          updatedPlayer = await PlayerManager.takePlayerCandy(
-            currentPlayer,
-            game.amount,
-          );
-        } else {
-          updatedPlayer = await PlayerManager.givePlayerCandy(
-            currentPlayer,
-            game.amount,
-          );
-        }
-
-        if (game.amount === 0) {
-          eventEmbed.setFooter({
-            text: `You have ${updatedPlayer.candy} 🍬`,
-          });
-        } else {
-          eventEmbed.setFooter({
-            text: `You now have ${updatedPlayer.candy} 🍬`,
-          });
-        }
+    if (awardCandy) {
+      updatedPlayer = await updatePlayerCandy(
+        currentPlayer,
+        category === StoryCategory.loss ? candy * -1 : candy,
+      );
+      if (category === StoryCategory.loss) {
+        event = TIMELINE_EVENT.LOST;
+      } else if (category === StoryCategory.falseWin) {
+        event = TIMELINE_EVENT.NOTHING;
+      } else {
+        event = TIMELINE_EVENT.GAIN;
       }
     }
 
+    await TimelineEvent.create({
+      playerId: currentPlayer.id,
+      promptId: story.id,
+      eventType: event,
+      roll: category === StoryCategory.loss ? candy * -1 : candy,
+      candyAmount: currentPlayer.candy,
+      date: new Date(),
+    });
+
     await interaction.editReply({
-      embeds: [eventEmbed],
+      embeds: [
+        storyEmbed({
+          story,
+          candy,
+          color,
+          player: updatedPlayer,
+        }),
+      ],
     });
     return;
   }
@@ -627,7 +632,7 @@ client.on(Events.InteractionCreate, async interaction => {
     });
 
     const newStory = await StoryTeller.addStory(
-      category as CategoryName,
+      category as StoryCategory,
       content as string,
     );
 

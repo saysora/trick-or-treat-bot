@@ -7,16 +7,7 @@ import {
   Table,
 } from 'sequelize-typescript';
 import Prompt from './Prompt';
-
-export enum CategoryName {
-  singularWin = 'singularwin',
-  win = 'win',
-  critWin = 'critwin',
-  falseWin = 'falsewin',
-  loss = 'loss',
-  totalLoss = 'totalloss',
-  gameover = 'gameover',
-}
+import {StoryCategory} from '../constants';
 
 @Table({
   tableName: 'prompt_categories',
@@ -35,7 +26,7 @@ export default class PromptCategory extends Model<
   @Column({
     type: DataType.STRING,
   })
-  declare name: keyof typeof CategoryName;
+  declare name: StoryCategory;
 
   @HasMany(() => Prompt)
   declare prompts: Prompt[];

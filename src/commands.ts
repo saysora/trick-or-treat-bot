@@ -1,5 +1,5 @@
 import {SlashCommandBuilder} from 'discord.js';
-import {CategoryName} from './models/PromptCategory';
+import {StoryCategory} from './constants';
 
 const commands = [
   new SlashCommandBuilder()
@@ -65,28 +65,28 @@ const commands = [
         .addChoices(
           {
             name: 'Critical Win',
-            value: CategoryName.critWin,
+            value: StoryCategory.critWin,
           },
-          {name: 'Win', value: CategoryName.win},
+          {name: 'Win', value: StoryCategory.win},
           {
             name: 'Single Win',
-            value: CategoryName.singularWin,
+            value: StoryCategory.singularWin,
           },
           {
             name: 'False Win',
-            value: CategoryName.falseWin,
+            value: StoryCategory.falseWin,
           },
           {
             name: 'Loss',
-            value: CategoryName.loss,
+            value: StoryCategory.loss,
           },
           {
             name: 'Total Loss',
-            value: CategoryName.totalLoss,
+            value: StoryCategory.totalLoss,
           },
           {
             name: 'Game Over',
-            value: CategoryName.gameover,
+            value: StoryCategory.gameover,
           },
         ),
     )

@@ -1,7 +1,7 @@
 import {Sequelize} from 'sequelize-typescript';
 import Prompt from '../models/Prompt';
-import PromptCategory, {CategoryName} from '../models/PromptCategory';
-import {ColorEnums, randomChance} from '../constants';
+import PromptCategory from '../models/PromptCategory';
+import {ColorEnums, randomChance, StoryCategory} from '../constants';
 
 interface GameStory {
   color: ColorEnums;
@@ -27,7 +27,7 @@ export default class StoryTeller {
     }
   }
 
-  static async randPromptByCat(category: CategoryName, candyCount: number) {
+  static async randPromptByCat(category: StoryCategory, candyCount: number) {
     let candyTerm = 'CANDY';
 
     if (candyCount < 0) {
@@ -68,58 +68,58 @@ export default class StoryTeller {
     // Variables to consider with this
     let payout = 0;
     let storyColor: ColorEnums;
-    let storyCategory: CategoryName;
+    let storyCategory: StoryCategory;
     let lowPayout = 4;
     let hiPayout = 8;
     let gain = true;
 
     switch (true) {
       case chance >= 600: {
-        storyCategory = CategoryName.critWin;
+        storyCategory = StoryCategory.critWin;
         storyColor = ColorEnums.win;
         break;
       }
       case chance >= 200 && chance < 600: {
-        storyCategory = CategoryName.win;
+        storyCategory = StoryCategory.win;
         storyColor = ColorEnums.barelyWin;
         lowPayout = 0;
         hiPayout = 3;
         break;
       }
       case chance >= 11 && chance < 200: {
-        storyCategory = CategoryName.loss;
+        storyCategory = StoryCategory.loss;
         storyColor = ColorEnums.loss;
         lowPayout = 1;
         gain = false;
         break;
       }
       case chance > 1 && chance < 11: {
-        storyCategory = CategoryName.totalLoss;
+        storyCategory = StoryCategory.totalLoss;
         storyColor = ColorEnums.totalLoss;
         break;
       }
 
       case chance <= 1: {
-        storyCategory = CategoryName.gameover;
+        storyCategory = StoryCategory.gameover;
         storyColor = ColorEnums.dead;
         break;
       }
 
       default: {
-        storyCategory = CategoryName.win;
+        storyCategory = StoryCategory.win;
         storyColor = ColorEnums.base;
       }
     }
 
     payout = randomChance(lowPayout, hiPayout).number;
 
-    if (payout === 0 && storyCategory === CategoryName.win) {
-      storyCategory = CategoryName.falseWin;
+    if (payout === 0 && storyCategory === StoryCategory.win) {
+      storyCategory = StoryCategory.falseWin;
       storyColor = ColorEnums.notReallyWin;
     }
 
-    if (payout === 1 && storyCategory === CategoryName.win) {
-      storyCategory = CategoryName.singularWin;
+    if (payout === 1 && storyCategory === StoryCategory.win) {
+      storyCategory = StoryCategory.singularWin;
       storyColor = ColorEnums.normWin;
     }
 
@@ -135,7 +135,7 @@ export default class StoryTeller {
     };
   }
 
-  static async addStory(category: CategoryName, content: string) {
+  static async addStory(category: StoryCategory, content: string) {
     try {
       const promptCategory = await PromptCategory.findOne({
         where: {

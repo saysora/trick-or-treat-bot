@@ -37,6 +37,7 @@ export async function getRandomOtherPlayer(id: string) {
       id: {
         [Op.ne]: id,
       },
+      isDead: false,
     },
     order: Sequelize.literal('random()'),
   });
@@ -61,6 +62,46 @@ export function canTot(player: Player, config: Config) {
     canAttempt = true;
   }
   return canAttempt;
+}
+
+export async function playerLoseAllCandy(player: Player) {
+  player.latestAttempt = new Date();
+  player.gatherAttempts += 1;
+  player.lostCandyCount += player.candy;
+  player.candy = 0;
+  player.allCandyLostCount += 1;
+
+  await player.save();
+  return player;
+}
+
+export async function killPlayer(player: Player) {
+  player.latestAttempt = new Date();
+  player.gatherAttempts += 1;
+  player.lostCandyCount += player.candy;
+  player.candy = 0;
+  player.allCandyLostCount += 1;
+  player.isDead = true;
+
+  await player.save();
+  return player;
+}
+
+export async function updatePlayerCandy(player: Player, candy: number) {
+  player.latestAttempt = new Date();
+  player.gatherAttempts += 1;
+
+  const currentCandy = player.candy;
+
+  if (currentCandy + candy < 0) {
+    player.candy = 0;
+  } else {
+    player.candy = currentCandy + candy;
+  }
+
+  await player.save();
+
+  return player;
 }
 
 export function timeToTot(player: Player, config: Config) {

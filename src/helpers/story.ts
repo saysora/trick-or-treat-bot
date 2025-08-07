@@ -11,7 +11,10 @@ const totalLoss = 1;
 
 // Candy
 const lowPayout = 0;
-const highPayout = 10;
+const highPayout = 4;
+
+const critLowPayout = 5;
+const critHighPayout = 10;
 
 export interface CategoryCandyAndColor {
   category: StoryCategory;
@@ -22,19 +25,23 @@ export interface CategoryCandyAndColor {
 export function storyCategory(num: number): CategoryCandyAndColor {
   let category: StoryCategory;
   let color: ColorEnums;
+  let candy = 0;
 
   switch (true) {
     case num >= critWin:
       category = StoryCategory.critWin;
       color = ColorEnums.win;
+      candy = randomChance2(critLowPayout, critHighPayout);
       break;
     case num >= normWin && num < critWin:
       category = StoryCategory.win;
       color = ColorEnums.barelyWin;
+      candy = randomChance2(lowPayout, highPayout);
       break;
     case num >= normLoss && num < normWin:
       category = StoryCategory.loss;
       color = ColorEnums.loss;
+      candy = randomChance2(lowPayout + 1, critHighPayout);
       break;
     case num > totalLoss && num < normLoss:
       category = StoryCategory.totalLoss;
@@ -47,11 +54,10 @@ export function storyCategory(num: number): CategoryCandyAndColor {
     default:
       category = StoryCategory.win;
       color = ColorEnums.base;
+      candy = randomChance2(lowPayout, highPayout);
   }
 
-  const candy = randomChance2(lowPayout, highPayout);
-
-  if (candy === 0) {
+  if (candy === 0 && category === StoryCategory.win) {
     category = StoryCategory.falseWin;
     color = ColorEnums.notReallyWin;
   }

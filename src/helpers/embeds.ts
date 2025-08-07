@@ -152,24 +152,42 @@ export async function getBackpack(user: User, config: Config) {
   });
 }
 
-export function storyEmbed(
-  story: Prompt,
-  category: StoryCategory,
-  color: ColorEnums,
-  player: Player,
-) {
+export function displayCandy(candy: number): string {
+  if (candy > 1) {
+    return `**${candy} CANDIES**`;
+  }
+  return `**${candy} CANDY**`;
+}
+
+export function storyEmbed({
+  story,
+  color,
+  candy,
+  player,
+}: {
+  story: Prompt;
+  color: ColorEnums;
+  candy: number;
+  player: Player;
+}) {
+  const storyContent = story.content.replace(/<AMOUNT>/, displayCandy(candy));
+
   const embed = createEmbed({
     title: 'Trick or Treat',
-    description: story.content,
+    description: storyContent,
     color,
-    footer: `You now have ${player.candy}`,
+    footer: `You now have ${player.candy} 🍬`,
   });
 
-  if (category === StoryCategory.gameover) {
+  if (story.category.name === StoryCategory.falseWin) {
+    embed.setFooter({text: `You have ${player.candy} 🍬`});
+  }
+
+  if (story.category.name === StoryCategory.gameover) {
     embed.setFooter({text: 'You are DEAD'});
   }
 
-  if (category === StoryCategory.totalLoss) {
+  if (story.category.name === StoryCategory.totalLoss) {
     embed.setFooter({
       text: 'You now have 0 🍬',
     });
