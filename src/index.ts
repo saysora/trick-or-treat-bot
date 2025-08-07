@@ -3,6 +3,7 @@ import {db} from './classes/database';
 import {
   ActivityType,
   Client,
+  ClientUser,
   EmbedBuilder,
   Events,
   GatewayIntentBits,
@@ -10,7 +11,6 @@ import {
   Partials,
   REST,
   Routes,
-  User,
 } from 'discord.js';
 import commands from './commands';
 import {ColorEnums, StoryCategory, TIMELINE_EVENT} from './constants';
@@ -45,6 +45,13 @@ import TimelineEvent from './models/TimelineEvent';
 import {isGameActive} from './helpers/configcheck';
 import {randomChance} from './helpers/chance';
 import {storyByCategory, storyCategory} from './helpers/story';
+import {
+  getRandomStatus,
+  NEGATIVE_STATUS,
+  POSITIVE_STATUS,
+} from './helpers/statuses';
+import {getTheDark, setStatus, setTarget} from './helpers/theDark';
+import {isBeforeDate} from './helpers/time';
 
 // Setup
 let configCache: Config;
@@ -90,7 +97,7 @@ void (async () => {
   }
 })();
 
-let botUser: User;
+let botUser: ClientUser;
 
 client.once(Events.ClientReady, async readyClient => {
   botUser = readyClient.user;
@@ -101,6 +108,13 @@ client.once(Events.ClientReady, async readyClient => {
     configCache = await getConfig();
   } catch (e) {
     console.error('Could not get a config');
+  }
+
+  let theDark = await getTheDark();
+
+  if (theDark) {
+    theDark = await setTarget(null);
+    setStatus(theDark, botUser);
   }
 
   const halloweenTimer = setInterval(() => {
@@ -125,13 +139,36 @@ client.once(Events.ClientReady, async readyClient => {
       readyClient.user.setActivity(`${timeUntilHalloween} until Halloween`, {
         type: ActivityType.Custom,
       });
-    } else {
-      // More to do here
-      readyClient.user.setActivity('...', {
-        type: ActivityType.Watching,
-      });
     }
   }, 60 * 1000);
+
+  // Every 10 minutes we reset the focus
+  const focusSet = setInterval(
+    async () => {
+      if (!configCache.enabled) {
+        return;
+      }
+
+      if (configCache.startDate && isBeforeDate(configCache.startDate)) {
+        return;
+      }
+
+      if (configCache.endDate && isBeforeDate(configCache.endDate)) {
+        return;
+      }
+
+      let theDark = await getTheDark();
+
+      if (!theDark) {
+        return;
+      }
+
+      theDark = await setTarget(theDark.target_id ?? null);
+
+      setStatus(theDark, botUser);
+    },
+    60 * 1000 * 10,
+  );
 });
 
 client.on(Events.InteractionCreate, async interaction => {
@@ -326,8 +363,35 @@ client.on(Events.InteractionCreate, async interaction => {
       }
     }
 
-    const chance = randomChance(1, 1000);
+    let chance = randomChance(1, 1000);
 
+    // Depending on the player status or the evils focus
+    // we fuck with their roll
+
+    if (NEGATIVE_STATUS.includes(currentPlayer.status ?? '')) {
+      chance -= randomChance(1, 100);
+    }
+
+    if (POSITIVE_STATUS.includes(currentPlayer.status ?? '')) {
+      chance += randomChance(1, 100);
+    }
+
+    let darkFocus = await getTheDark();
+
+    if (darkFocus?.target_id === currentPlayer.id) {
+      const chanceWithDark = (chance -= randomChance(1, 200));
+
+      // Save them from the dark being an immediate kill
+      if (chanceWithDark <= 0) {
+        chance = randomChance(1, 20);
+      } else {
+        chance = chanceWithDark;
+      }
+      darkFocus = await setTarget(currentPlayer.id);
+      setStatus(darkFocus, botUser);
+    }
+
+    currentPlayer.status = getRandomStatus();
     const {category, candy, color} = storyCategory(chance);
     const story = await storyByCategory(category);
 

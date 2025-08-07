@@ -1,11 +1,7 @@
 import {Op, Sequelize} from 'sequelize';
 import Player from '../models/Player';
-import {randomChance} from '../constants';
-
-interface CreatePlayerProps {
-  id: string;
-  serverId: string;
-}
+import TimelineEvent from '../models/TimelineEvent';
+import {randomChance} from '../helpers/chance';
 
 export default class PlayerManager {
   static async getRandomLivingPlayer(id: string[]) {
@@ -39,48 +35,12 @@ export default class PlayerManager {
     }
   }
 
-  static async givePlayerCandy(
-    player: Player,
-    amount: number,
-  ): Promise<Player> {
-    player.latestAttempt = new Date();
-    player.gatherAttempts += 1;
-    player.candy += amount;
-
-    await player.save();
-
-    return player;
-  }
-
-  static async takePlayerCandy(
-    player: Player,
-    amount: number,
-  ): Promise<Player> {
-    player.latestAttempt = new Date();
-    player.gatherAttempts += 1;
-    if (player.candy < amount) {
-      player.lostCandyCount += player.candy;
-      player.candy = 0;
-    } else {
-      player.candy -= amount;
-      player.lostCandyCount += amount;
-    }
-
-    // Hard enforce always having at least 0 candies
-    if (player.candy < 0) {
-      player.candy = 0;
-    }
-
-    await player.save();
-    return player;
-  }
-
   static async eatOtherPlayerCandy(
     player: Player,
     target: Player,
     potentialVictim: Player,
   ) {
-    const chance = randomChance(0, 100).number;
+    const chance = randomChance(0, 100);
     let actualTarget: Player;
     let success = false;
 
@@ -101,7 +61,7 @@ export default class PlayerManager {
       }
     }
 
-    const eatenCandyCount = randomChance(0, 3).number;
+    const eatenCandyCount = randomChance(0, 3);
 
     player.latestAttempt = new Date();
     player.gatherAttempts += 1;
@@ -130,28 +90,6 @@ export default class PlayerManager {
     };
   }
 
-  static async playerLoseAllCandy(player: Player): Promise<Player> {
-    player.latestAttempt = new Date();
-    player.gatherAttempts += 1;
-    player.lostCandyCount += player.candy;
-    player.candy = 0;
-    player.allCandyLostCount += 1;
-
-    await player.save();
-    return player;
-  }
-
-  static async killPlayer(player: Player): Promise<Player> {
-    player.latestAttempt = new Date();
-    player.gatherAttempts += 1;
-    player.lostCandyCount += player.candy;
-    player.candy = 0;
-    player.isDead = true;
-
-    await player.save();
-    return player;
-  }
-
   static async playerLB(page = 1): Promise<{
     page: number;
     players: Player[]; //& {place: number}[];
@@ -176,6 +114,7 @@ export default class PlayerManager {
   static async resetAll(): Promise<boolean> {
     try {
       await Player.destroy({where: {}});
+      await TimelineEvent.destroy({where: {}});
       return true;
     } catch (e) {
       console.error(e);

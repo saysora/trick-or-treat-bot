@@ -13,14 +13,6 @@ export enum ColorEnums {
 export const PAGE_LIMIT = 10;
 export const DEFAULT_PAGE = 1;
 
-export const randomChance = (min: number, max: number) => {
-  return {
-    min,
-    number: Math.floor(Math.random() * (max - min + 1) + min),
-    max,
-  };
-};
-
 export enum TIMELINE_EVENT {
   START = 'started',
   GAIN = 'gained',

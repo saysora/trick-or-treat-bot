@@ -2,7 +2,7 @@ import moment = require('moment');
 import Player from '../models/Player';
 import Config from '../models/Config';
 import {getRandomStatus} from './statuses';
-import {Op, Sequelize} from 'sequelize';
+import {Op, Sequelize, WhereOptions} from 'sequelize';
 
 export async function createPlayer({
   id,
@@ -31,14 +31,19 @@ export async function getPlayer(id: string) {
   return player;
 }
 
-export async function getRandomOtherPlayer(id: string) {
-  const otherPlayer = await Player.findOne({
-    where: {
+export async function getRandomOtherPlayer(id: string | null) {
+  let where: WhereOptions = {isDead: false};
+
+  if (id) {
+    where = {
+      ...where,
       id: {
         [Op.ne]: id,
       },
-      isDead: false,
-    },
+    };
+  }
+  const otherPlayer = await Player.findOne({
+    where,
     order: Sequelize.literal('random()'),
   });
 

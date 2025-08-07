@@ -1,7 +1,8 @@
 import {Sequelize} from 'sequelize-typescript';
 import Prompt from '../models/Prompt';
 import PromptCategory from '../models/PromptCategory';
-import {ColorEnums, randomChance, StoryCategory} from '../constants';
+import {ColorEnums, StoryCategory} from '../constants';
+import {randomChance} from '../helpers/chance';
 
 interface GameStory {
   color: ColorEnums;
@@ -111,7 +112,7 @@ export default class StoryTeller {
       }
     }
 
-    payout = randomChance(lowPayout, hiPayout).number;
+    payout = randomChance(lowPayout, hiPayout);
 
     if (payout === 0 && storyCategory === StoryCategory.win) {
       storyCategory = StoryCategory.falseWin;
