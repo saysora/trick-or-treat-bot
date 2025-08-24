@@ -369,11 +369,15 @@ client.on(Events.InteractionCreate, async interaction => {
     // we fuck with their roll
 
     if (NEGATIVE_STATUS.includes(currentPlayer.status ?? '')) {
-      chance -= randomChance(1, 100);
+      console.log({original: chance});
+      chance -= randomChance(50, 100);
+      console.log({negativeAltered: chance});
     }
 
     if (POSITIVE_STATUS.includes(currentPlayer.status ?? '')) {
+      console.log({original: chance});
       chance += randomChance(1, 100);
+      console.log({alteredPositive: chance});
     }
 
     let darkFocus = await getTheDark();
@@ -382,9 +386,7 @@ client.on(Events.InteractionCreate, async interaction => {
       const chanceWithDark = (chance -= randomChance(1, 200));
 
       // Save them from the dark being an immediate kill
-      if (chanceWithDark <= 0) {
-        chance = randomChance(1, 20);
-      } else {
+      if (chanceWithDark > 0) {
         chance = chanceWithDark;
       }
       darkFocus = await setTarget(currentPlayer.id);

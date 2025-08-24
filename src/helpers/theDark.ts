@@ -36,7 +36,9 @@ export async function setTarget(currentTarget: string | null) {
 
 export function setStatus(theDark: TheDark, user: ClientUser) {
   if (!theDark.target_id || !theDark.target) {
-    user.setActivity('...');
+    user.setActivity('...', {
+      type: ActivityType.Custom,
+    });
   } else {
     user.setActivity(`${theDark.target.name}...`, {
       type: ActivityType.Watching,
