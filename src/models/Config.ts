@@ -11,32 +11,32 @@ import {
   tableName: 'config',
   timestamps: false,
 })
-export default class Config extends Model<Config> {
+export default class Config extends Model<Config, Partial<Config>> {
   @PrimaryKey
   @Column
-  id: number;
+  declare id: number;
 
   @Column
-  enabled: boolean;
+  declare enabled: boolean;
 
   @Column
-  cooldownEnabled: boolean;
+  declare cooldownEnabled: boolean;
 
   @Column
-  cooldownTime: number;
+  declare cooldownTime: number;
 
   @Column
-  cooldownUnit: string;
+  declare cooldownUnit: string;
 
   @IsDate
   @Column({
     type: DataType.DATE,
   })
-  startDate: Date | null;
+  declare startDate: Date | null;
 
   @IsDate
   @Column({
     type: DataType.DATE,
   })
-  endDate: Date | null;
+  declare endDate: Date | null;
 }

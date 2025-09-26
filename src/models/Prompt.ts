@@ -14,21 +14,21 @@ import PromptCategory from './PromptCategory';
   tableName: 'prompts',
   timestamps: false,
 })
-export default class Prompt extends Model<Partial<Prompt>> {
+export default class Prompt extends Model<Prompt, Partial<Prompt>> {
   @PrimaryKey
   @IsUUID(4)
   @Column({
     defaultValue: DataType.UUIDV4(),
   })
-  id: string;
+  declare id: string;
 
   @ForeignKey(() => PromptCategory)
   @Column
-  categoryId: string;
+  declare categoryId: string;
 
   @BelongsTo(() => PromptCategory)
-  category: PromptCategory;
+  declare category: PromptCategory;
 
   @Column
-  content: string;
+  declare content: string;
 }

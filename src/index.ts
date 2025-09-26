@@ -3,71 +3,109 @@ import {db} from './classes/database';
 import {
   ActivityType,
   Client,
+  ClientUser,
   EmbedBuilder,
   Events,
   GatewayIntentBits,
+  MessageFlags,
   Partials,
   REST,
   Routes,
-  User,
 } from 'discord.js';
 import commands from './commands';
 import {
+  candyPlur,
   ColorEnums,
-  FALSE_STATUSES,
-  isAfterDate,
-  isBeforeDate,
-  randomChance,
+  StoryCategory,
+  TIMELINE_EVENT,
 } from './constants';
 import Player from './models/Player';
 import StoryTeller from './classes/StoryTeller';
-import {CategoryName} from './models/PromptCategory';
 import moment = require('moment');
-import PlayerManager from './classes/PlayerManager';
 import Config from './models/Config';
-import ConfigManager from './classes/ConfigManager';
+import {getConfig, updateConfig} from './classes/ConfigManager';
+import {
+  canTot,
+  createPlayer,
+  eatCandy,
+  getPlayer,
+  killPlayer,
+  playerLoseAllCandy,
+  resetAll,
+  updatePlayerCandy,
+} from './helpers/player-helper';
+import {
+  alreadyPlaying,
+  badEmbed,
+  beginEmbed,
+  deadEmbed,
+  eatOnCooldown,
+  failedToEat,
+  getBackpack,
+  notDeadEat,
+  notPlaying,
+  storyEmbed,
+  totOnCooldown,
+} from './helpers/embeds';
+import TimelineEvent from './models/TimelineEvent';
+import {isGameActive} from './helpers/configcheck';
+import {randomChance} from './helpers/chance';
+import {storyByCategory, storyCategory} from './helpers/story';
+import {
+  getRandomStatus,
+  NEGATIVE_STATUS,
+  POSITIVE_STATUS,
+} from './helpers/statuses';
+import {
+  focusIntervalTime,
+  getTheDark,
+  setStatus,
+  setTarget,
+} from './helpers/theDark';
+import {isBeforeDate} from './helpers/time';
+import {getLeaderBoard} from './helpers/leaderboard';
 
 // Setup
 let configCache: Config;
-const HALLOWEEN_DATE = '2024-10-31';
 
-const DISC_VARS = ['TOKEN', 'CLIENTID', 'WEBHOOK_URL'];
+const {TOKEN, CLIENTID, WEBHOOK_URL} = process.env;
+const DISC_VARS = [TOKEN, CLIENTID, WEBHOOK_URL];
 
 DISC_VARS.forEach(discVar => {
-  if (!(discVar in process.env)) {
+  if (!discVar) {
     throw new Error(`Missing ${discVar}`);
   }
 });
 
+let focusInterval: NodeJS.Timeout;
+
+// Game funcs
+const setFocus = async () => {
+  if (!configCache.enabled) {
+    return;
+  }
+
+  if (configCache.startDate && isBeforeDate(configCache.startDate)) {
+    return;
+  }
+
+  if (configCache.endDate && isBeforeDate(configCache.endDate)) {
+    return;
+  }
+
+  let theDark = await getTheDark();
+
+  if (!theDark) {
+    return;
+  }
+
+  theDark = await setTarget(theDark.target_id ?? null);
+
+  setStatus(theDark, client);
+};
+
 // Should move this somewhere else to clean it up
 // but yolo
-const canTot = (player: Player) => {
-  let canAttempt = false;
-
-  if (
-    player.gatherAttempts > 0 &&
-    !moment().isSameOrAfter(
-      moment(player.latestAttempt).add(
-        configCache.cooldownTime,
-        configCache.cooldownUnit as moment.unitOfTime.DurationConstructor
-      )
-    )
-  ) {
-    canAttempt = false;
-  } else {
-    canAttempt = true;
-  }
-  return canAttempt;
-};
-
-const timeToTot = (player: Player) => {
-  return moment(player.latestAttempt)
-    .add(
-      configCache.cooldownTime,
-      configCache.cooldownUnit as moment.unitOfTime.DurationConstructor
-    )
-    .fromNow(true);
-};
 
 const client = new Client({
   intents: [
@@ -86,32 +124,37 @@ const client = new Client({
 
 const rest = new REST({version: '10'}).setToken(process.env.TOKEN!);
 
-(async () => {
+void (async () => {
   try {
     console.info(`Refreshing ${Object.keys(commands).length} commands.`);
-    const data = (await rest.put(
-      Routes.applicationCommands(process.env.CLIENTID!),
-      {
-        body: commands.map(command => command.toJSON()),
-      }
-    )) as string[];
+    const data = (await rest.put(Routes.applicationCommands(CLIENTID!), {
+      body: commands.map(command => command.toJSON()),
+    })) as string[];
     console.info(`Successfully reloaded ${data.length} (/) commands`);
   } catch (e) {
     console.error(e);
   }
 })();
 
-let botUser: User;
+let botUser: ClientUser;
 
 client.once(Events.ClientReady, async readyClient => {
   botUser = readyClient.user;
   console.info(`Online as ${botUser.tag}`);
   await db.authenticate();
 
-  configCache = await ConfigManager.getConfig();
-  readyClient.user.setActivity('Trick or Treat until you DIE', {
-    type: ActivityType.Custom,
-  });
+  try {
+    configCache = await getConfig();
+  } catch (e) {
+    console.error('Could not get a config');
+  }
+
+  let theDark = await getTheDark();
+
+  if (theDark) {
+    theDark = await setTarget(null);
+    setStatus(theDark, client);
+  }
 
   const halloweenTimer = setInterval(() => {
     if (configCache.endDate) {
@@ -119,13 +162,13 @@ client.once(Events.ClientReady, async readyClient => {
 
       const minutesUntilHalloween = moment(configCache.endDate).diff(
         moment(),
-        'minutes'
+        'minutes',
       );
 
       if (minutesUntilHalloween < 0) {
         clearInterval(halloweenTimer);
 
-        readyClient.user.setActivity('Trick Or Treat until you DIE', {
+        readyClient.user.setActivity('Trick Or Treat or you DIE', {
           type: ActivityType.Custom,
         });
 
@@ -135,16 +178,16 @@ client.once(Events.ClientReady, async readyClient => {
       readyClient.user.setActivity(`${timeUntilHalloween} until Halloween`, {
         type: ActivityType.Custom,
       });
-    } else {
-      readyClient.user.setActivity('Trick Or Treat until you DIE', {
-        type: ActivityType.Custom,
-      });
     }
   }, 60 * 1000);
+
+  // Every 10 minutes we reset the focus
+  // or after the focused user takes their turn
+  focusInterval = setInterval(async () => setFocus, focusIntervalTime);
 });
 
 client.on(Events.InteractionCreate, async interaction => {
-  if (!interaction.isCommand()) return;
+  if (!interaction.isChatInputCommand()) return;
   if (interaction.user.bot) return;
 
   const eventEmbed = new EmbedBuilder().setColor(ColorEnums.base);
@@ -194,10 +237,10 @@ client.on(Events.InteractionCreate, async interaction => {
       ephemeral: true,
     });
 
-    if (
-      !interaction.options.get('item')?.value &&
-      !interaction.options.get('value')?.value
-    ) {
+    const item = interaction.options.getString('item');
+    const value = interaction.options.getString('value');
+
+    if (!item && !value) {
       eventEmbed.setTitle('Could not update');
       eventEmbed.setDescription('Could not find item or value');
       await interaction.editReply({
@@ -206,9 +249,8 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
-    configCache = await ConfigManager.updateConfig({
-      [interaction.options.get('item')?.value as string]:
-        interaction.options.get('value')?.value,
+    configCache = await updateConfig({
+      [item as keyof Config]: value === 'null' ? null : value,
     });
 
     eventEmbed.setTitle('Game Config Updated');
@@ -247,114 +289,65 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   if (interaction.commandName === 'go-out') {
-    if (
-      process.env.GAME_CHANNEL_ID &&
-      interaction.channelId !== process.env.GAME_CHANNEL_ID
-    ) {
-      await interaction.reply({
-        ephemeral: true,
-        content: `You can only trick-or-treat in <#${process.env.GAME_CHANNEL_ID}>`,
-      });
-      return;
-    }
+    const {content, active} = isGameActive(configCache, interaction.channelId);
 
-    if (!configCache.enabled) {
+    if (!active) {
       await interaction.reply({
-        ephemeral: true,
-        content: "It's not time to trick or treat yet!",
-      });
-      return;
-    }
-
-    if (configCache.startDate && isBeforeDate(configCache.startDate)) {
-      await interaction.reply({
-        ephemeral: true,
-        content: `It's not time to trick or treat yet! You need to wait until ${moment(configCache.startDate, 'YYYY-MM-DD').format('MMMM Do')}`,
-      });
-      return;
-    }
-
-    if (configCache.endDate && isAfterDate(configCache.endDate)) {
-      await interaction.reply({
-        ephemeral: true,
-        content: 'It is too late to trick or treat. Halloween is over.',
+        content: content ?? 'Something went wrong',
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
 
     await interaction.deferReply();
 
-    const isCurrentPlayer = await PlayerManager.getPlayer(interaction.user.id);
+    const isCurrentPlayer = await getPlayer(interaction.user.id);
+
+    let embed = eventEmbed;
 
     if (!isCurrentPlayer) {
       try {
-        await PlayerManager.createPlayer({
+        await createPlayer({
           id: interaction.user.id,
           serverId: interaction.guildId!,
+          name: interaction.user.username,
         });
 
-        eventEmbed.setTitle('You leave to trick or treat');
-        eventEmbed.setColor(ColorEnums.loss);
-        eventEmbed.setDescription(
-          `🏠🌲🏠🌲🏠🌲 \n🏃‍♀️  🏃 🏃‍\n🌲🏠🌲🏠🌲🏠\n\nDo be careful out there...`
-        );
-        eventEmbed.setFooter({
-          text: 'Use the /trick-or-treat command to collect candy',
+        embed = beginEmbed();
+        // This is the moment they began
+        await TimelineEvent.create({
+          playerId: interaction.user.id,
+          eventType: TIMELINE_EVENT.START,
+          roll: 0,
+          candyAmount: 0,
         });
       } catch (e) {
-        eventEmbed.setTitle('Something went wrong');
-        eventEmbed.setDescription('Contact saysora');
+        embed = badEmbed();
         console.error(e);
       } finally {
         await interaction.editReply({
-          embeds: [eventEmbed],
+          embeds: [embed],
         });
       }
       return;
     } else {
-      eventEmbed.setTitle('You are already trick or treating');
-      eventEmbed.setDescription(
-        'No need to go out again,\ninstead use the /trick-or-treat  command to gather candy'
-      );
       await interaction.editReply({
-        embeds: [eventEmbed],
+        embeds: [alreadyPlaying()],
       });
     }
     return;
   }
 
-  if (interaction.commandName === 'trick-or-treat') {
-    if (
-      process.env.GAME_CHANNEL_ID &&
-      interaction.channelId !== process.env.GAME_CHANNEL_ID
-    ) {
-      await interaction.reply({
-        ephemeral: true,
-        content: `You can only trick-or-treat in <#${process.env.GAME_CHANNEL_ID}>`,
-      });
-      return;
-    }
+  if (
+    interaction.commandName === 'trick-or-treat' ||
+    interaction.commandName === 'tot'
+  ) {
+    const {content, active} = isGameActive(configCache, interaction.channelId);
 
-    if (!configCache.enabled) {
+    if (!active) {
       await interaction.reply({
-        ephemeral: true,
-        content: "It's not time to trick or treat yet!",
-      });
-      return;
-    }
-
-    if (configCache.startDate && isBeforeDate(configCache.startDate)) {
-      await interaction.reply({
-        ephemeral: true,
-        content: `It's not time to trick or treat yet! You need to wait until ${moment(configCache.startDate, 'YYYY-MM-DD').format('MMMM Do')}`,
-      });
-      return;
-    }
-
-    if (configCache.endDate && isAfterDate(configCache.endDate)) {
-      await interaction.reply({
-        ephemeral: true,
-        content: 'It is too late to trick or treat. Halloween is over.',
+        content: content ?? 'Something went wrong',
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -363,239 +356,170 @@ client.on(Events.InteractionCreate, async interaction => {
 
     eventEmbed.setTitle('Trick or Treat');
 
-    const currentPlayer = await PlayerManager.getPlayer(interaction.user.id);
+    const currentPlayer = await getPlayer(interaction.user.id);
 
     if (!currentPlayer) {
-      eventEmbed.setTitle('You are not trick or treating');
-      eventEmbed.setDescription(
-        'Use the go-out command to begin trick or treating'
-      );
       await interaction.editReply({
-        embeds: [eventEmbed],
+        embeds: [notPlaying()],
       });
       return;
     }
 
     if (currentPlayer.isDead) {
-      eventEmbed.setTitle('YOU ARE ██DEAD');
-      eventEmbed.setDescription(
-        'You cannot trick or treat anymore... But maybe there is something else you can do.'
-      );
-      eventEmbed.setFooter({
-        text: `Died at ${new Date(currentPlayer.latestAttempt).toLocaleString()}`,
-      });
       await interaction.editReply({
-        embeds: [eventEmbed],
+        embeds: [deadEmbed(currentPlayer)],
       });
       return;
     }
 
     if (configCache.cooldownEnabled) {
-      if (!canTot(currentPlayer)) {
-        eventEmbed.setTitle('Eager are we?');
-        eventEmbed.setDescription(
-          `Too bad.\nYou must wait **${timeToTot(currentPlayer)}** before you can trick or treat again...`
-        );
-        eventEmbed.setFooter({
-          text: `You have ${currentPlayer.candy} 🍬 • you can also check your backpack to see when you can trick or treat again`,
-        });
+      if (!canTot(currentPlayer, configCache)) {
         await interaction.editReply({
-          embeds: [eventEmbed],
+          embeds: [totOnCooldown(currentPlayer, configCache)],
         });
         return;
       }
     }
 
-    const chance = randomChance(1, 1000);
-    const game = await StoryTeller.gamePrompt(chance.number);
+    let chance = randomChance(1, 1000);
 
-    eventEmbed.setColor(game.story.color);
-    eventEmbed.setDescription(game.story.content);
+    // Depending on the player status or the evils focus
+    // we fuck with their roll
 
-    let updatedPlayer: Player;
-
-    switch (true) {
-      case game.story.category === CategoryName.gameover: {
-        updatedPlayer = await PlayerManager.killPlayer(currentPlayer);
-        eventEmbed.setFooter({
-          text: 'You are DEAD',
-        });
-        break;
-      }
-      case game.story.category === CategoryName.totalLoss: {
-        updatedPlayer = await PlayerManager.playerLoseAllCandy(currentPlayer);
-        eventEmbed.setFooter({
-          text: 'You now have 0 🍬',
-        });
-        break;
-      }
-      default: {
-        if (!game.gain) {
-          updatedPlayer = await PlayerManager.takePlayerCandy(
-            currentPlayer,
-            game.amount
-          );
-        } else {
-          updatedPlayer = await PlayerManager.givePlayerCandy(
-            currentPlayer,
-            game.amount
-          );
-        }
-
-        if (game.amount === 0) {
-          eventEmbed.setFooter({
-            text: `You have ${updatedPlayer.candy} 🍬`,
-          });
-        } else {
-          eventEmbed.setFooter({
-            text: `You now have ${updatedPlayer.candy} 🍬`,
-          });
-        }
+    if (NEGATIVE_STATUS.includes(currentPlayer.status ?? '')) {
+      chance -= randomChance(15, 100);
+      if (chance < 1) {
+        chance = 2; // Hard save someone if their status got them killed
       }
     }
 
+    if (POSITIVE_STATUS.includes(currentPlayer.status ?? '')) {
+      chance += randomChance(1, 100);
+    }
+
+    let darkFocus = await getTheDark();
+
+    if (darkFocus?.target_id === currentPlayer.id) {
+      const chanceWithDark = chance - randomChance(1, 200);
+
+      // Save them from the dark being an immediate kill
+      if (chanceWithDark > 0) {
+        chance = chanceWithDark;
+      }
+      clearInterval(focusInterval);
+      darkFocus = await setTarget(currentPlayer.id);
+      setStatus(darkFocus, client);
+      focusInterval = setInterval(async () => setFocus, focusIntervalTime);
+    }
+
+    currentPlayer.status = getRandomStatus();
+    const {category, candy, color} = storyCategory(chance);
+    const story = await storyByCategory(category);
+
+    if (!story) {
+      throw new Error('Could not get a story');
+    }
+
+    let updatedPlayer: Player = currentPlayer;
+    let awardCandy = true;
+    let event: TIMELINE_EVENT = TIMELINE_EVENT.LOST;
+
+    if (category === StoryCategory.gameover) {
+      updatedPlayer = await killPlayer(currentPlayer);
+      awardCandy = false;
+      event = TIMELINE_EVENT.DIED;
+    }
+
+    if (category === StoryCategory.totalLoss) {
+      updatedPlayer = await playerLoseAllCandy(currentPlayer);
+      awardCandy = false;
+      event = TIMELINE_EVENT.LOST_ALL;
+    }
+
+    if (awardCandy) {
+      updatedPlayer = await updatePlayerCandy(
+        currentPlayer,
+        category === StoryCategory.loss ? candy * -1 : candy,
+      );
+      if (category === StoryCategory.loss) {
+        event = TIMELINE_EVENT.LOST;
+      } else if (category === StoryCategory.falseWin) {
+        event = TIMELINE_EVENT.NOTHING;
+      } else {
+        event = TIMELINE_EVENT.GAIN;
+      }
+    }
+
+    await TimelineEvent.create({
+      playerId: currentPlayer.id,
+      promptId: story.id,
+      eventType: event,
+      roll: category === StoryCategory.loss ? candy * -1 : candy,
+      candyAmount: currentPlayer.candy,
+      date: new Date(),
+    });
+
     await interaction.editReply({
-      embeds: [eventEmbed],
+      embeds: [
+        storyEmbed({
+          story,
+          candy,
+          color,
+          player: updatedPlayer,
+        }),
+      ],
     });
     return;
   }
 
   if (interaction.commandName === 'backpack') {
-    if (
-      process.env.GAME_CHANNEL_ID &&
-      interaction.channelId !== process.env.GAME_CHANNEL_ID
-    ) {
+    const {content, active} = isGameActive(configCache, interaction.channelId);
+
+    if (!active) {
       await interaction.reply({
-        ephemeral: true,
-        content: `You can only trick-or-treat in <#${process.env.GAME_CHANNEL_ID}>`,
+        content: content ?? 'Something went wrong',
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
 
-    if (!configCache.enabled) {
-      await interaction.reply({
-        ephemeral: true,
-        content: "It's not time to trick or treat yet!",
-      });
-      return;
-    }
-
-    if (configCache.startDate && isBeforeDate(configCache.startDate)) {
-      await interaction.reply({
-        ephemeral: true,
-        content: `It's not time to trick or treat yet! You need to wait until ${moment(configCache.startDate, 'YYYY-MM-DD').format('MMMM Do')}`,
-      });
-      return;
-    }
-
-    if (configCache.endDate && isAfterDate(configCache.endDate)) {
-      await interaction.reply({
-        ephemeral: true,
-        content: 'It is too late to trick or treat. Halloween is over.',
-      });
-      return;
-    }
+    const pub = interaction.options.getBoolean('public');
 
     await interaction.deferReply({
-      ephemeral: true,
+      flags: !pub ? MessageFlags.Ephemeral : undefined,
     });
 
-    const currentPlayer = await PlayerManager.getPlayer(interaction.user.id);
+    const currentPlayer = await getPlayer(interaction.user.id);
 
     if (!currentPlayer) {
       await interaction.editReply({
-        content: `You aren not trick-or-treating yet! Use the /go-out command to start`,
+        content:
+          'You aren not trick-or-treating yet! Use the /go-out command to start',
       });
       return;
     }
 
-    const randomStatus =
-      FALSE_STATUSES[
-        Math.floor(Math.random() * FALSE_STATUSES.length)
-      ].toUpperCase();
-
-    let canTotString = canTot(currentPlayer)
-      ? 'You can trick or treat again'
-      : `Time until you can trick or treat again: ${timeToTot(currentPlayer)}`;
-
-    let status = `You are feeling **${randomStatus}**...`;
-
-    let statFields = [
-      {
-        name: 'Candy',
-        value: `**${currentPlayer.candy}**`,
-      },
-      {
-        name: 'Candy Lost',
-        value: `**${currentPlayer.lostCandyCount}**`,
-        inline: true,
-      },
-      {
-        name: 'Gather Attempts',
-        value: `**${currentPlayer.gatherAttempts}**`,
-        inline: true,
-      },
-    ];
-
-    if (currentPlayer.isDead) {
-      eventEmbed.setColor(ColorEnums.dead);
-      status = '**YOU ARE ██DEAD**\n\nYou are feeling **HUNGRY**...';
-
-      canTotString = canTot(currentPlayer)
-        ? 'You can ███ again...'
-        : `Time until you can ███ again: ${timeToTot(currentPlayer)}`;
-
-      statFields = [
-        {
-          name: 'Candy ██ten',
-          value: `**${currentPlayer.destroyedCandy}**`,
-        },
-        ...statFields.slice(1),
-      ];
-    }
-
-    eventEmbed.setThumbnail(interaction.user.displayAvatarURL());
-    eventEmbed.setDescription(`
-      ## Backpack\n${status}\n\n
-    `);
-
-    eventEmbed.setFooter({
-      text: `${canTotString}`,
-    });
-
-    eventEmbed.setFields(statFields);
+    const currentDark = await getTheDark();
+    const backpack = await getBackpack(
+      interaction.user,
+      configCache,
+      currentDark?.target_id === interaction.user.id,
+    );
 
     await interaction.editReply({
-      embeds: [eventEmbed],
+      embeds: [backpack],
     });
 
     return;
   }
 
   if (interaction.commandName === 'leaderboard') {
-    if (
-      process.env.GAME_CHANNEL_ID &&
-      interaction.channelId !== process.env.GAME_CHANNEL_ID
-    ) {
-      await interaction.reply({
-        ephemeral: true,
-        content: `You can only trick-or-treat in <#${process.env.GAME_CHANNEL_ID}>`,
-      });
-      return;
-    }
+    const {content, active} = isGameActive(configCache, interaction.channelId);
 
-    if (!configCache.enabled) {
+    if (!active) {
       await interaction.reply({
-        ephemeral: true,
-        content: "It's not time to trick or treat yet!",
-      });
-      return;
-    }
-
-    if (configCache.startDate && isBeforeDate(configCache.startDate)) {
-      await interaction.reply({
-        ephemeral: true,
-        content: `It's not time to trick or treat yet! You need to wait until ${moment(configCache.startDate, 'YYYY-MM-DD').format('MMMM Do')}`,
+        content: content ?? 'Something went wrong',
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -604,14 +528,11 @@ client.on(Events.InteractionCreate, async interaction => {
 
     const wantedPage = Number(interaction.options.get('page')?.value ?? 0);
 
-    const {players, page, totalPages} =
-      await PlayerManager.playerLB(wantedPage);
+    const {players, page, pages} = await getLeaderBoard(wantedPage);
 
-    if (wantedPage > totalPages) {
+    if (wantedPage > pages) {
       eventEmbed.setTitle('No page found');
-      eventEmbed.setDescription(
-        `There are only ${totalPages} leaderboard pages`
-      );
+      eventEmbed.setDescription(`There are only ${pages} leaderboard pages`);
       await interaction.editReply({
         embeds: [eventEmbed],
       });
@@ -635,7 +556,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
     eventEmbed.setDescription(lbString);
     eventEmbed.setFooter({
-      text: `Page ${page}/${totalPages}`,
+      text: `Page ${page}/${pages}`,
     });
 
     await interaction.editReply({
@@ -646,78 +567,37 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   if (interaction.commandName === 'eat') {
-    if (
-      process.env.GAME_CHANNEL_ID &&
-      interaction.channelId !== process.env.GAME_CHANNEL_ID
-    ) {
+    const {content, active} = isGameActive(configCache, interaction.channelId);
+
+    if (!active) {
       await interaction.reply({
-        ephemeral: true,
-        content: `You can only trick-or-treat in <#${process.env.GAME_CHANNEL_ID}>`,
+        content: content ?? 'Something went wrong',
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
-
-    if (!configCache.enabled) {
-      await interaction.reply({
-        ephemeral: true,
-        content: "It's not time to trick or treat yet!",
-      });
-      return;
-    }
-
-    if (configCache.startDate && isBeforeDate(configCache.startDate)) {
-      await interaction.reply({
-        ephemeral: true,
-        content: `It's not time to trick or treat yet! You need to wait until ${moment(configCache.startDate, 'YYYY-MM-DD').format('MMMM Do')}`,
-      });
-      return;
-    }
-
-    if (configCache.endDate && isAfterDate(configCache.endDate)) {
-      await interaction.reply({
-        ephemeral: true,
-        content: 'It is too late to trick or treat. Halloween is over.',
-      });
-      return;
-    }
-
     await interaction.deferReply();
 
-    const currentPlayer = await PlayerManager.getPlayer(interaction.user.id);
+    const currentPlayer = await getPlayer(interaction.user.id);
 
     if (!currentPlayer) {
-      eventEmbed.setTitle('You are not trick or treating');
-      eventEmbed.setDescription(
-        'Use the go-out command to begin trick or treating'
-      );
       await interaction.editReply({
-        embeds: [eventEmbed],
+        embeds: [notPlaying()],
       });
       return;
     }
 
-    eventEmbed.setColor(ColorEnums.undead);
-
     if (!currentPlayer.isDead) {
-      eventEmbed.setTitle('Huh?');
-      eventEmbed.setDescription(`W█at d█ you █e█n?`);
       await interaction.editReply({
-        embeds: [eventEmbed],
+        embeds: [notDeadEat()],
       });
       return;
     }
 
     if (configCache.cooldownEnabled) {
-      if (!canTot(currentPlayer)) {
-        eventEmbed.setTitle('No█ y█t...');
-        eventEmbed.setDescription(
-          `You must wait **${timeToTot(currentPlayer)}** before you can █at again.`
-        );
-        eventEmbed.setFooter({
-          text: `You have ██ten ${currentPlayer.destroyedCandy} 🍬 • you can also check your backpack to see when you can ea█ again`,
-        });
+      if (!canTot(currentPlayer, configCache)) {
         await interaction.editReply({
-          embeds: [eventEmbed],
+          embeds: [eatOnCooldown(currentPlayer, configCache)],
         });
         return;
       }
@@ -739,7 +619,7 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
-    const targetPlayer = await PlayerManager.getPlayer(target);
+    const targetPlayer = await getPlayer(target);
 
     if (!targetPlayer) {
       await interaction.editReply({
@@ -748,72 +628,55 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
-    const potentialVictim = await PlayerManager.getRandomLivingPlayer([
-      interaction.user.id,
-      target,
-    ]);
-
-    if (!potentialVictim) {
-      eventEmbed.setDescription("Coul█ not █at.\n\nThat did█'t ██em to █ork");
-      await interaction.editReply({
-        embeds: [eventEmbed],
-      });
-      return;
-    }
-
     const {
       success,
-      intendedTarget,
-      eatenCandyCount,
-      player: updatedPlayer,
-      actualTarget,
-    } = await PlayerManager.eatOtherPlayerCandy(
-      currentPlayer,
-      targetPlayer,
-      potentialVictim
-    );
+      eaten,
+      player,
+      target: actualTarget,
+    } = await eatCandy(currentPlayer, targetPlayer);
 
+    eventEmbed.setColor(ColorEnums.undead);
     eventEmbed.setTitle('You ███');
 
-    if (!success) {
-      eventEmbed.setDescription('No█hing ███pened\n\nYou are still ███gry...');
-      await interaction.editReply({
-        embeds: [eventEmbed],
+    if (!success || !actualTarget) {
+      const failEmbed = failedToEat();
+      failEmbed.setFooter({
+        text: `You have ███en ${player.destroyedCandy} 🍬`,
       });
-      eventEmbed.setFooter({
-        text: `You have ███en ${updatedPlayer.destroyedCandy} 🍬`,
+
+      await interaction.editReply({
+        embeds: [failEmbed],
       });
       return;
     }
 
-    let attackString = '';
-    let candyString = eatenCandyCount === 1 ? 'CANDY' : 'CANDIES';
+    let attackString = `You at██ck██ <@${target}>!\n\n`;
+    const candyString = candyPlur(eaten);
 
-    if (!intendedTarget) {
-      attackString += `You at██ck██ <@${target}>!\n\n`;
-      if (eatenCandyCount > 0) {
-        attackString += `...\n\n**BUT** ███acked <@${actualTarget.id}> instead and ███ **${eatenCandyCount} ${candyString}**!!\n\nHow Could you?`;
+    if (actualTarget.id !== targetPlayer.id) {
+      if (eaten > 0) {
+        attackString += `...\n\n**BUT** ███acked <@${actualTarget.id}> instead and ███ **${eaten} ${candyString}**!!\n\nHow Could you?`;
       } else {
         attackString += `...\n\n**BUT** tried to ███ <@${actualTarget.id}>'s candy instead!!!\n\nYou didn't manage to ███ any though.`;
       }
     } else {
-      attackString += `You at██ck██ <@${target}>!\n\n`;
-      if (eatenCandyCount > 0) {
-        attackString += `...\n\n**AND** ███ **${eatenCandyCount}** of their CANDY!`;
+      attackString = `You at██ck██ <@${target}>!\n\n`;
+      if (eaten > 0) {
+        attackString += `...\n\n**AND** ███ **${eaten}** of their CANDY!`;
       } else {
-        attackString += `...\n\n**AND** Didn't ███ any ██ndy.`;
+        attackString += "...\n\n**AND** Didn't ███ any ██ndy.";
       }
     }
 
     eventEmbed.setDescription(attackString);
 
-    if (eatenCandyCount > 0) {
+    if (eaten > 0) {
       eventEmbed.setFooter({
-        text: `You have now ███en ${updatedPlayer.destroyedCandy} 🍬`,
+        text: `You have now ███en ${player.destroyedCandy} 🍬`,
       });
     } else {
       eventEmbed.setFooter({
-        text: `You have ███en ${updatedPlayer.destroyedCandy} 🍬`,
+        text: `You have ███en ${player.destroyedCandy} 🍬`,
       });
     }
 
@@ -841,8 +704,8 @@ client.on(Events.InteractionCreate, async interaction => {
     });
 
     const newStory = await StoryTeller.addStory(
-      category as CategoryName,
-      content as string
+      category as StoryCategory,
+      content as string,
     );
 
     if (!newStory) {
@@ -855,7 +718,7 @@ client.on(Events.InteractionCreate, async interaction => {
     } else {
       eventEmbed.setTitle('Story added');
       eventEmbed.setDescription(
-        `Category: ${category}\nStory: ${newStory.content}`
+        `Category: ${category}\nStory: ${newStory.content}`,
       );
       eventEmbed.setFooter({
         text: `ID: ${newStory.id}`,
@@ -893,7 +756,7 @@ client.on(Events.InteractionCreate, async interaction => {
     } else {
       eventEmbed.setTitle('Story Deleted');
       eventEmbed.setDescription(
-        `Category: ${storyDeleted.category.name}\nStory: ${storyDeleted.content}`
+        `Category: ${storyDeleted.category.name}\nStory: ${storyDeleted.content}`,
       );
       await interaction.editReply({
         embeds: [eventEmbed],
@@ -907,7 +770,7 @@ client.on(Events.InteractionCreate, async interaction => {
       ephemeral: true,
     });
 
-    const gameReset = await PlayerManager.resetAll();
+    const gameReset = await resetAll();
 
     let answer = '';
     if (gameReset) {
@@ -923,4 +786,4 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 });
 
-client.login(process.env.TOKEN!);
+void client.login(TOKEN);

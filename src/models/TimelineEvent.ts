@@ -15,42 +15,45 @@ import {TIMELINE_EVENT} from '../constants';
   tableName: 'timeline_events',
   timestamps: false,
 })
-export default class TimelineEvent extends Model<Partial<TimelineEvent>> {
+export default class TimelineEvent extends Model<
+  TimelineEvent,
+  Partial<TimelineEvent>
+> {
   @PrimaryKey
   @Column({
     type: DataType.UUIDV4,
     defaultValue: DataType.UUIDV4,
   })
-  id: string;
+  declare id: string;
 
   @ForeignKey(() => Player)
   @Column
-  playerId: string;
+  declare playerId: string;
 
   @BelongsTo(() => Player)
-  player: Player;
+  declare player: Player;
 
   @ForeignKey(() => Prompt)
   @Column({
     type: DataType.UUIDV4,
   })
-  promptId: string | null;
+  declare promptId: string | null;
 
   @BelongsTo(() => Prompt)
-  prompt: Prompt | null;
+  declare prompt: Prompt | null;
 
   @Column
-  eventType: TIMELINE_EVENT;
+  declare eventType: TIMELINE_EVENT;
 
   @Column
-  roll: number;
+  declare roll: number;
 
   @Column
-  candyAmount: number;
+  declare candyAmount: number;
 
   @Column({
     type: DataType.DATE,
     defaultValue: new Date(),
   })
-  date: Date;
+  declare date: Date;
 }

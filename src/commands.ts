@@ -1,5 +1,5 @@
 import {SlashCommandBuilder} from 'discord.js';
-import {CategoryName} from './models/PromptCategory';
+import {StoryCategory} from './constants';
 
 const commands = [
   new SlashCommandBuilder()
@@ -8,20 +8,24 @@ const commands = [
   new SlashCommandBuilder()
     .setName('trick-or-treat')
     .setDescription('Gather candy'),
+  new SlashCommandBuilder().setName('tot').setDescription('Gather candy'),
   new SlashCommandBuilder()
     .setName('backpack')
-    .setDescription('Check your stats'),
+    .setDescription('Check your stats')
+    .addBooleanOption(boolOpt =>
+      boolOpt.setName('public').setDescription('show your backpack to others'),
+    ),
   new SlashCommandBuilder()
     .setName('leaderboard')
     .setDescription('See who has the most candy')
     .addNumberOption(option =>
-      option.setName('page').setDescription('Page of the leaderboard to check')
+      option.setName('page').setDescription('Page of the leaderboard to check'),
     ),
   new SlashCommandBuilder()
     .setName('eat')
     .setDescription('███ █L███R█ █████')
     .addUserOption(option =>
-      option.setName('player').setDescription('██R███').setRequired(true)
+      option.setName('player').setDescription('██R███').setRequired(true),
     ),
 
   // Admin only commands
@@ -43,14 +47,14 @@ const commands = [
           {name: 'Cooldown Time Value', value: 'cooldownTime'},
           {name: 'Cooldown Time Unit', value: 'cooldownUnit'},
           {name: 'Game Start Date', value: 'startDate'},
-          {name: 'Game End Date', value: 'endDate'}
-        )
+          {name: 'Game End Date', value: 'endDate'},
+        ),
     )
     .addStringOption(option =>
       option
         .setName('value')
         .setDescription('Set config item value')
-        .setRequired(true)
+        .setRequired(true),
     )
     .setDefaultMemberPermissions(0),
   // Story commands
@@ -65,43 +69,43 @@ const commands = [
         .addChoices(
           {
             name: 'Critical Win',
-            value: CategoryName.critWin,
+            value: StoryCategory.critWin,
           },
-          {name: 'Win', value: CategoryName.win},
+          {name: 'Win', value: StoryCategory.win},
           {
             name: 'Single Win',
-            value: CategoryName.singularWin,
+            value: StoryCategory.singularWin,
           },
           {
             name: 'False Win',
-            value: CategoryName.falseWin,
+            value: StoryCategory.falseWin,
           },
           {
             name: 'Loss',
-            value: CategoryName.loss,
+            value: StoryCategory.loss,
           },
           {
             name: 'Total Loss',
-            value: CategoryName.totalLoss,
+            value: StoryCategory.totalLoss,
           },
           {
             name: 'Game Over',
-            value: CategoryName.gameover,
-          }
-        )
+            value: StoryCategory.gameover,
+          },
+        ),
     )
     .addStringOption(option =>
       option
         .setName('content')
         .setDescription('Content of the story')
-        .setRequired(true)
+        .setRequired(true),
     )
     .setDefaultMemberPermissions(0),
   new SlashCommandBuilder()
     .setName('story-delete')
     .setDescription('Delete a story from the list')
     .addStringOption(option =>
-      option.setName('id').setDescription('Id of the story').setRequired(true)
+      option.setName('id').setDescription('Id of the story').setRequired(true),
     )
     .setDefaultMemberPermissions(0),
   new SlashCommandBuilder()

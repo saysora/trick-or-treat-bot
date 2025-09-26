@@ -3,7 +3,7 @@ import {QueryInterface} from 'sequelize';
 module.exports = {
   async up(queryInterface: QueryInterface) {
     await queryInterface.sequelize.query(`
-      CREATE TABLE config (
+      CREATE TABLE IF NOT EXISTS config (
         id INTEGER PRIMARY KEY generated always as identity,
         enabled BOOLEAN DEFAULT FALSE,
         "cooldownEnabled" BOOLEAN DEFAULT FALSE,
