@@ -31,3 +31,10 @@ export enum StoryCategory {
   totalLoss = 'totalloss',
   gameover = 'gameover',
 }
+
+export function candyPlur(num: number) {
+  if (num === 1) {
+    return 'Candy';
+  }
+  return 'Candies';
+}

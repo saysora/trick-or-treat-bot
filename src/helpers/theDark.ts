@@ -1,15 +1,18 @@
-import {ActivityType, ClientUser} from 'discord.js';
+import {ActivityType, Client} from 'discord.js';
 import Player from '../models/Player';
 import TheDark from '../models/TheDark';
 import {randomChance} from './chance';
 import {getRandomOtherPlayer} from './player-helper';
 
+export const focusIntervalTime = 60 * 1000 * 10; // 10 minutes
+
 export async function getTheDark() {
-  return await TheDark.findOne({
+  const theDark = await TheDark.findOne({
     include: {
       model: Player,
     },
   });
+  return theDark;
 }
 
 export async function setTarget(currentTarget: string | null) {
@@ -34,13 +37,13 @@ export async function setTarget(currentTarget: string | null) {
   return theDark;
 }
 
-export function setStatus(theDark: TheDark, user: ClientUser) {
+export function setStatus(theDark: TheDark, client: Client) {
   if (!theDark.target_id || !theDark.target) {
-    user.setActivity('...', {
+    client.user?.setActivity('...', {
       type: ActivityType.Custom,
     });
   } else {
-    user.setActivity(`${theDark.target.name}...`, {
+    client.user?.setActivity(`${theDark.target.name}...`, {
       type: ActivityType.Watching,
     });
   }

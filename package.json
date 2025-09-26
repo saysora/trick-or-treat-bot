@@ -11,7 +11,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "dev": "tsc --watch",
+    "dev": "concurrently \"tsc --watch --preserveWatchOutput\" \"nodemon\"",
     "start": "node build/index.js",
     "test": "test",
     "lint": "gts lint",
@@ -27,7 +27,9 @@
   "devDependencies": {
     "@types/node": "^22.7.5",
     "@types/validator": "^13.12.0",
+    "concurrently": "^9.2.1",
     "gts": "^6.0.2",
+    "nodemon": "^3.1.10",
     "sequelize-cli": "^6.6.2",
     "typescript": "^5.6.3"
   },

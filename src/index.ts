@@ -13,19 +13,25 @@ import {
   Routes,
 } from 'discord.js';
 import commands from './commands';
-import {ColorEnums, StoryCategory, TIMELINE_EVENT} from './constants';
+import {
+  candyPlur,
+  ColorEnums,
+  StoryCategory,
+  TIMELINE_EVENT,
+} from './constants';
 import Player from './models/Player';
 import StoryTeller from './classes/StoryTeller';
 import moment = require('moment');
-import PlayerManager from './classes/PlayerManager';
 import Config from './models/Config';
 import {getConfig, updateConfig} from './classes/ConfigManager';
 import {
   canTot,
   createPlayer,
+  eatCandy,
   getPlayer,
   killPlayer,
   playerLoseAllCandy,
+  resetAll,
   updatePlayerCandy,
 } from './helpers/player-helper';
 import {
@@ -50,8 +56,14 @@ import {
   NEGATIVE_STATUS,
   POSITIVE_STATUS,
 } from './helpers/statuses';
-import {getTheDark, setStatus, setTarget} from './helpers/theDark';
+import {
+  focusIntervalTime,
+  getTheDark,
+  setStatus,
+  setTarget,
+} from './helpers/theDark';
 import {isBeforeDate} from './helpers/time';
+import {getLeaderBoard} from './helpers/leaderboard';
 
 // Setup
 let configCache: Config;
@@ -64,6 +76,33 @@ DISC_VARS.forEach(discVar => {
     throw new Error(`Missing ${discVar}`);
   }
 });
+
+let focusInterval: NodeJS.Timeout;
+
+// Game funcs
+const setFocus = async () => {
+  if (!configCache.enabled) {
+    return;
+  }
+
+  if (configCache.startDate && isBeforeDate(configCache.startDate)) {
+    return;
+  }
+
+  if (configCache.endDate && isBeforeDate(configCache.endDate)) {
+    return;
+  }
+
+  let theDark = await getTheDark();
+
+  if (!theDark) {
+    return;
+  }
+
+  theDark = await setTarget(theDark.target_id ?? null);
+
+  setStatus(theDark, client);
+};
 
 // Should move this somewhere else to clean it up
 // but yolo
@@ -114,7 +153,7 @@ client.once(Events.ClientReady, async readyClient => {
 
   if (theDark) {
     theDark = await setTarget(null);
-    setStatus(theDark, botUser);
+    setStatus(theDark, client);
   }
 
   const halloweenTimer = setInterval(() => {
@@ -143,32 +182,8 @@ client.once(Events.ClientReady, async readyClient => {
   }, 60 * 1000);
 
   // Every 10 minutes we reset the focus
-  const focusSet = setInterval(
-    async () => {
-      if (!configCache.enabled) {
-        return;
-      }
-
-      if (configCache.startDate && isBeforeDate(configCache.startDate)) {
-        return;
-      }
-
-      if (configCache.endDate && isBeforeDate(configCache.endDate)) {
-        return;
-      }
-
-      let theDark = await getTheDark();
-
-      if (!theDark) {
-        return;
-      }
-
-      theDark = await setTarget(theDark.target_id ?? null);
-
-      setStatus(theDark, botUser);
-    },
-    60 * 1000 * 10,
-  );
+  // or after the focused user takes their turn
+  focusInterval = setInterval(async () => setFocus, focusIntervalTime);
 });
 
 client.on(Events.InteractionCreate, async interaction => {
@@ -323,7 +338,10 @@ client.on(Events.InteractionCreate, async interaction => {
     return;
   }
 
-  if (interaction.commandName === 'trick-or-treat') {
+  if (
+    interaction.commandName === 'trick-or-treat' ||
+    interaction.commandName === 'tot'
+  ) {
     const {content, active} = isGameActive(configCache, interaction.channelId);
 
     if (!active) {
@@ -369,28 +387,29 @@ client.on(Events.InteractionCreate, async interaction => {
     // we fuck with their roll
 
     if (NEGATIVE_STATUS.includes(currentPlayer.status ?? '')) {
-      console.log({original: chance});
-      chance -= randomChance(50, 100);
-      console.log({negativeAltered: chance});
+      chance -= randomChance(15, 100);
+      if (chance < 1) {
+        chance = 2; // Hard save someone if their status got them killed
+      }
     }
 
     if (POSITIVE_STATUS.includes(currentPlayer.status ?? '')) {
-      console.log({original: chance});
       chance += randomChance(1, 100);
-      console.log({alteredPositive: chance});
     }
 
     let darkFocus = await getTheDark();
 
     if (darkFocus?.target_id === currentPlayer.id) {
-      const chanceWithDark = (chance -= randomChance(1, 200));
+      const chanceWithDark = chance - randomChance(1, 200);
 
       // Save them from the dark being an immediate kill
       if (chanceWithDark > 0) {
         chance = chanceWithDark;
       }
+      clearInterval(focusInterval);
       darkFocus = await setTarget(currentPlayer.id);
-      setStatus(darkFocus, botUser);
+      setStatus(darkFocus, client);
+      focusInterval = setInterval(async () => setFocus, focusIntervalTime);
     }
 
     currentPlayer.status = getRandomStatus();
@@ -464,8 +483,10 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
+    const pub = interaction.options.getBoolean('public');
+
     await interaction.deferReply({
-      ephemeral: true,
+      flags: !pub ? MessageFlags.Ephemeral : undefined,
     });
 
     const currentPlayer = await getPlayer(interaction.user.id);
@@ -478,7 +499,12 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
-    const backpack = await getBackpack(interaction.user, configCache);
+    const currentDark = await getTheDark();
+    const backpack = await getBackpack(
+      interaction.user,
+      configCache,
+      currentDark?.target_id === interaction.user.id,
+    );
 
     await interaction.editReply({
       embeds: [backpack],
@@ -502,14 +528,11 @@ client.on(Events.InteractionCreate, async interaction => {
 
     const wantedPage = Number(interaction.options.get('page')?.value ?? 0);
 
-    const {players, page, totalPages} =
-      await PlayerManager.playerLB(wantedPage);
+    const {players, page, pages} = await getLeaderBoard(wantedPage);
 
-    if (wantedPage > totalPages) {
+    if (wantedPage > pages) {
       eventEmbed.setTitle('No page found');
-      eventEmbed.setDescription(
-        `There are only ${totalPages} leaderboard pages`,
-      );
+      eventEmbed.setDescription(`There are only ${pages} leaderboard pages`);
       await interaction.editReply({
         embeds: [eventEmbed],
       });
@@ -533,7 +556,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
     eventEmbed.setDescription(lbString);
     eventEmbed.setFooter({
-      text: `Page ${page}/${totalPages}`,
+      text: `Page ${page}/${pages}`,
     });
 
     await interaction.editReply({
@@ -605,71 +628,55 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
-    const potentialVictim = await PlayerManager.getRandomLivingPlayer([
-      interaction.user.id,
-      target,
-    ]);
-
-    if (!potentialVictim) {
-      await interaction.editReply({
-        embeds: [failedToEat()],
-      });
-      return;
-    }
-
     const {
       success,
-      intendedTarget,
-      eatenCandyCount,
-      player: updatedPlayer,
-      actualTarget,
-    } = await PlayerManager.eatOtherPlayerCandy(
-      currentPlayer,
-      targetPlayer,
-      potentialVictim,
-    );
+      eaten,
+      player,
+      target: actualTarget,
+    } = await eatCandy(currentPlayer, targetPlayer);
 
+    eventEmbed.setColor(ColorEnums.undead);
     eventEmbed.setTitle('You ███');
 
-    if (!success) {
-      eventEmbed.setDescription('No█hing ███pened\n\nYou are still ███gry...');
-      await interaction.editReply({
-        embeds: [eventEmbed],
+    if (!success || !actualTarget) {
+      const failEmbed = failedToEat();
+      failEmbed.setFooter({
+        text: `You have ███en ${player.destroyedCandy} 🍬`,
       });
-      eventEmbed.setFooter({
-        text: `You have ███en ${updatedPlayer.destroyedCandy} 🍬`,
+
+      await interaction.editReply({
+        embeds: [failEmbed],
       });
       return;
     }
 
-    let attackString = '';
-    let candyString = eatenCandyCount === 1 ? 'CANDY' : 'CANDIES';
+    let attackString = `You at██ck██ <@${target}>!\n\n`;
+    const candyString = candyPlur(eaten);
 
-    if (!intendedTarget) {
-      attackString += `You at██ck██ <@${target}>!\n\n`;
-      if (eatenCandyCount > 0) {
-        attackString += `...\n\n**BUT** ███acked <@${actualTarget.id}> instead and ███ **${eatenCandyCount} ${candyString}**!!\n\nHow Could you?`;
+    if (actualTarget.id !== targetPlayer.id) {
+      if (eaten > 0) {
+        attackString += `...\n\n**BUT** ███acked <@${actualTarget.id}> instead and ███ **${eaten} ${candyString}**!!\n\nHow Could you?`;
       } else {
         attackString += `...\n\n**BUT** tried to ███ <@${actualTarget.id}>'s candy instead!!!\n\nYou didn't manage to ███ any though.`;
       }
     } else {
-      attackString += `You at██ck██ <@${target}>!\n\n`;
-      if (eatenCandyCount > 0) {
-        attackString += `...\n\n**AND** ███ **${eatenCandyCount}** of their CANDY!`;
+      attackString = `You at██ck██ <@${target}>!\n\n`;
+      if (eaten > 0) {
+        attackString += `...\n\n**AND** ███ **${eaten}** of their CANDY!`;
       } else {
-        attackString += `...\n\n**AND** Didn't ███ any ██ndy.`;
+        attackString += "...\n\n**AND** Didn't ███ any ██ndy.";
       }
     }
 
     eventEmbed.setDescription(attackString);
 
-    if (eatenCandyCount > 0) {
+    if (eaten > 0) {
       eventEmbed.setFooter({
-        text: `You have now ███en ${updatedPlayer.destroyedCandy} 🍬`,
+        text: `You have now ███en ${player.destroyedCandy} 🍬`,
       });
     } else {
       eventEmbed.setFooter({
-        text: `You have ███en ${updatedPlayer.destroyedCandy} 🍬`,
+        text: `You have ███en ${player.destroyedCandy} 🍬`,
       });
     }
 
@@ -763,7 +770,7 @@ client.on(Events.InteractionCreate, async interaction => {
       ephemeral: true,
     });
 
-    const gameReset = await PlayerManager.resetAll();
+    const gameReset = await resetAll();
 
     let answer = '';
     if (gameReset) {

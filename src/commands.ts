@@ -8,9 +8,13 @@ const commands = [
   new SlashCommandBuilder()
     .setName('trick-or-treat')
     .setDescription('Gather candy'),
+  new SlashCommandBuilder().setName('tot').setDescription('Gather candy'),
   new SlashCommandBuilder()
     .setName('backpack')
-    .setDescription('Check your stats'),
+    .setDescription('Check your stats')
+    .addBooleanOption(boolOpt =>
+      boolOpt.setName('public').setDescription('show your backpack to others'),
+    ),
   new SlashCommandBuilder()
     .setName('leaderboard')
     .setDescription('See who has the most candy')

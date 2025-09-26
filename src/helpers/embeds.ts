@@ -77,12 +77,19 @@ export function badEmbed() {
     .setDescription('Contact saysora');
 }
 
-export async function getBackpack(user: User, config: Config) {
+export async function getBackpack(
+  user: User,
+  config: Config,
+  darkFocus: boolean,
+) {
+  let title = '🎒 Backpack';
   const player = await getPlayer(user.id);
 
   if (!player) {
     throw new Error('Could not find player');
   }
+
+  console.log(darkFocus);
 
   const canTrickOrTreat = canTot(player, config);
   const timeUntilTrickOrTreat = timeToTot(player, config);
@@ -106,6 +113,10 @@ export async function getBackpack(user: User, config: Config) {
 
   let status = `You are feeling **${player.status}**`;
 
+  if (darkFocus) {
+    status += '\nAnd you feel an ominous gaze...';
+  }
+
   let statFields = [
     {
       name: 'Candy',
@@ -125,7 +136,8 @@ export async function getBackpack(user: User, config: Config) {
 
   // Edits for dedge
   if (player.isDead) {
-    embedColor = ColorEnums.dead;
+    title = '💀 Bodybag';
+    embedColor = ColorEnums.undead;
 
     status = '**YOU ARE DEAD**\n\n You are feeling **HUNGRY**...';
 
@@ -143,7 +155,7 @@ export async function getBackpack(user: User, config: Config) {
   }
 
   return createEmbed({
-    title: 'Backpack',
+    title,
     description: status,
     color: embedColor,
     thumbnail: user.displayAvatarURL(),
@@ -215,8 +227,9 @@ export function eatOnCooldown(player: Player, config: Config) {
 
 export function failedToEat() {
   return createEmbed({
+    title: 'You ███',
     color: ColorEnums.undead,
-    description: "Coul█ not █at.\n\nThat did█'t ██em to █ork",
+    description: 'No█hing ███pened\n\nYou are still ███gry...',
   });
 }
 

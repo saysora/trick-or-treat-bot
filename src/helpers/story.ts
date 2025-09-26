@@ -4,8 +4,8 @@ import Prompt from '../models/Prompt';
 import {randomChance} from './chance';
 import PromptCategory from '../models/PromptCategory';
 
-const critWin = 600;
-const normWin = 200;
+const critWin = 700;
+const normWin = 400;
 const normLoss = 11;
 const totalLoss = 1;
 
@@ -28,25 +28,30 @@ export function storyCategory(num: number): CategoryCandyAndColor {
   let candy = 0;
 
   switch (true) {
+    // Big Win
     case num >= critWin:
       category = StoryCategory.critWin;
       color = ColorEnums.win;
       candy = randomChance(critLowPayout, critHighPayout);
       break;
+    // Norm win
     case num >= normWin && num < critWin:
       category = StoryCategory.win;
       color = ColorEnums.barelyWin;
       candy = randomChance(lowPayout, highPayout);
       break;
+    // Loss
     case num >= normLoss && num < normWin:
       category = StoryCategory.loss;
       color = ColorEnums.loss;
       candy = randomChance(lowPayout + 1, critHighPayout);
       break;
+    // Total Loss
     case num > totalLoss && num < normLoss:
       category = StoryCategory.totalLoss;
       color = ColorEnums.totalLoss;
       break;
+    // Dedge
     case num <= 1:
       category = StoryCategory.gameover;
       color = ColorEnums.totalLoss;

@@ -31,7 +31,7 @@ export default class Player extends Model<Player, Partial<Player>> {
     allowNull: true,
     field: 'status_set',
   })
-  statusSet: Date;
+  declare statusSet: Date;
 
   @Column
   declare name: string;
