@@ -786,4 +786,37 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 });
 
+client.on(Events.GuildMemberUpdate, async (prev, cur) => {
+  if (prev.nickname || cur.nickname) {
+    const existingPlayer = await Player.findOne({
+      where: {
+        id: cur.id,
+      },
+    });
+
+    if (!existingPlayer) {
+      return;
+    }
+
+    if (cur.nickname) {
+      existingPlayer.name = cur.nickname;
+    } else {
+      existingPlayer.name = cur.user.username;
+    }
+
+    await existingPlayer.save();
+
+    // Update the players name if they are the target
+    const theDark = await getTheDark();
+
+    if (!theDark) {
+      return;
+    }
+
+    if (theDark.target_id === cur.id) {
+      setStatus(theDark, client);
+    }
+  }
+});
+
 void client.login(TOKEN);
