@@ -37,6 +37,12 @@ export async function setTarget(currentTarget: string | null) {
   return theDark;
 }
 
+export function setPreGameStatus(client: Client) {
+  client.user?.setActivity('...wandering...', {
+    type: ActivityType.Custom,
+  });
+}
+
 export function setStatus(theDark: TheDark, client: Client) {
   if (!theDark.target_id || !theDark.target) {
     client.user?.setActivity('...', {

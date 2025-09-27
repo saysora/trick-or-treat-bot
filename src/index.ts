@@ -59,17 +59,18 @@ import {
 import {
   focusIntervalTime,
   getTheDark,
+  setPreGameStatus,
   setStatus,
   setTarget,
 } from './helpers/theDark';
-import {isBeforeDate} from './helpers/time';
+import {isAfterDate, isBeforeDate} from './helpers/time';
 import {getLeaderBoard} from './helpers/leaderboard';
 
 // Setup
 let configCache: Config;
 
-const {TOKEN, CLIENTID, WEBHOOK_URL} = process.env;
-const DISC_VARS = [TOKEN, CLIENTID, WEBHOOK_URL];
+const {TOKEN, CLIENTID} = process.env;
+const DISC_VARS = [TOKEN, CLIENTID];
 
 DISC_VARS.forEach(discVar => {
   if (!discVar) {
@@ -86,10 +87,12 @@ const setFocus = async () => {
   }
 
   if (configCache.startDate && isBeforeDate(configCache.startDate)) {
+    setPreGameStatus(client);
     return;
   }
 
-  if (configCache.endDate && isBeforeDate(configCache.endDate)) {
+  if (configCache.endDate && isAfterDate(configCache.endDate)) {
+    setPreGameStatus(client);
     return;
   }
 
