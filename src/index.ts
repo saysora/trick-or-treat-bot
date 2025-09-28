@@ -792,10 +792,10 @@ client.on(Events.InteractionCreate, async interaction => {
 
   // Sending
   if (interaction.commandName === 'send') {
+    // Don't allow anyone but the server owner to do this
+    if (interaction.user.id !== interaction.guild?.ownerId) return;
     const chan = interaction.options.getChannel('channel');
     const msg = interaction.options.getString('message');
-
-    console.log({chan, msg});
 
     if (!chan || !msg) {
       await interaction.reply({
