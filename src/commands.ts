@@ -112,6 +112,23 @@ const commands = [
     .setName('reset-all')
     .setDescription('Resets all player data')
     .setDefaultMemberPermissions(0),
+  // Messages
+  new SlashCommandBuilder()
+    .setName('send')
+    .setDescription('Send a message as the bot')
+    .addChannelOption(chanOpt =>
+      chanOpt
+        .setName('channel')
+        .setDescription('channel to send message to')
+        .setRequired(true),
+    )
+    .addStringOption(strOpt =>
+      strOpt
+        .setName('message')
+        .setDescription('message to send')
+        .setRequired(true),
+    )
+    .setDefaultMemberPermissions(0),
 ];
 
 export default commands;

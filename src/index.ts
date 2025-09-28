@@ -8,9 +8,11 @@ import {
   Events,
   GatewayIntentBits,
   MessageFlags,
+  NewsChannel,
   Partials,
   REST,
   Routes,
+  TextChannel,
 } from 'discord.js';
 import commands from './commands';
 import {
@@ -197,7 +199,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
   if (interaction.commandName === 'config-get') {
     await interaction.deferReply({
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
 
     eventEmbed.setTitle('Game Config');
@@ -237,7 +239,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
   if (interaction.commandName === 'config-update') {
     await interaction.deferReply({
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
 
     const item = interaction.options.getString('item');
@@ -696,14 +698,14 @@ client.on(Events.InteractionCreate, async interaction => {
     const content = interaction.options.get('content')?.value;
     if (!category || !content) {
       await interaction.reply({
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
         content: 'Category or content missing for the story',
       });
       return;
     }
 
     await interaction.deferReply({
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
 
     const newStory = await StoryTeller.addStory(
@@ -738,13 +740,13 @@ client.on(Events.InteractionCreate, async interaction => {
 
     if (!id) {
       await interaction.reply({
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
         content: 'You must provide the id',
       });
     }
 
     await interaction.deferReply({
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
 
     const storyDeleted = await StoryTeller.deleteStory(id as string);
@@ -770,7 +772,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
   if (interaction.commandName === 'reset-all') {
     await interaction.deferReply({
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
 
     const gameReset = await resetAll();
@@ -785,6 +787,52 @@ client.on(Events.InteractionCreate, async interaction => {
     await interaction.editReply({
       content: answer,
     });
+    return;
+  }
+
+  // Sending
+  if (interaction.commandName === 'send') {
+    const chan = interaction.options.getChannel('channel');
+    const msg = interaction.options.getString('message');
+
+    console.log({chan, msg});
+
+    if (!chan || !msg) {
+      await interaction.reply({
+        flags: MessageFlags.Ephemeral,
+        content: 'You must provide both channel and a message',
+      });
+
+      return;
+    }
+
+    if (!(chan instanceof TextChannel) && !(chan instanceof NewsChannel)) {
+      await interaction.reply({
+        flags: MessageFlags.Ephemeral,
+        content: 'You can only send messages to text or news channels',
+      });
+
+      return;
+    }
+
+    await interaction.deferReply({
+      flags: MessageFlags.Ephemeral,
+    });
+
+    try {
+      await chan.send({content: msg});
+      await interaction.editReply({
+        content: 'Message successfully sent',
+      });
+    } catch (e) {
+      const err = e as Error;
+      console.error(e);
+      await interaction.editReply({
+        content: err.message ?? 'Something went wrong',
+      });
+      return;
+    }
+
     return;
   }
 });
