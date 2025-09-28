@@ -2,6 +2,7 @@ import 'dotenv/config';
 import {db} from './classes/database';
 import {
   ActivityType,
+  ChannelType,
   Client,
   ClientUser,
   EmbedBuilder,
@@ -18,6 +19,7 @@ import commands from './commands';
 import {
   candyPlur,
   ColorEnums,
+  commandList,
   StoryCategory,
   TIMELINE_EVENT,
 } from './constants';
@@ -40,6 +42,7 @@ import {
   alreadyPlaying,
   badEmbed,
   beginEmbed,
+  createEmbed,
   deadEmbed,
   eatOnCooldown,
   failedToEat,
@@ -67,6 +70,8 @@ import {
 } from './helpers/theDark';
 import {isAfterDate, isBeforeDate} from './helpers/time';
 import {getLeaderBoard} from './helpers/leaderboard';
+import {Channel} from 'node:diagnostics_channel';
+import {StartMessage} from './constants/messages';
 
 // Setup
 let configCache: Config;
@@ -692,6 +697,31 @@ client.on(Events.InteractionCreate, async interaction => {
     return;
   }
 
+  if (interaction.commandName === 'help') {
+    let msg = '';
+    commandList.forEach(({cmd, aliases, description}) => {
+      msg += `**${cmd}**: ${description}`;
+
+      if (aliases?.length) {
+        const cmds = aliases.map(c => `\`${c}\``);
+        msg += `\n**aliases**: [${cmds.join(', ')}]`;
+      }
+
+      msg += '\n\n';
+    });
+    await interaction.reply({
+      flags: MessageFlags.Ephemeral,
+      embeds: [
+        createEmbed({
+          title: 'Help',
+          description: msg,
+          color: ColorEnums.base,
+        }),
+      ],
+    });
+    return;
+  }
+
   // Admin commands
   if (interaction.commandName === 'story-create') {
     const category = interaction.options.get('category')?.value;
@@ -794,7 +824,11 @@ client.on(Events.InteractionCreate, async interaction => {
   if (interaction.commandName === 'send') {
     // Don't allow anyone but the server owner to do this
     if (interaction.user.id !== interaction.guild?.ownerId) return;
-    const chan = interaction.options.getChannel('channel');
+    const chan = interaction.options.getChannel('channel', true, [
+      ChannelType.GuildText,
+      ChannelType.GuildDirectory,
+      // Maybe extend this into threads etc at some point
+    ]);
     const msg = interaction.options.getString('message');
 
     if (!chan || !msg) {
@@ -806,7 +840,7 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
-    if (!(chan instanceof TextChannel) && !(chan instanceof NewsChannel)) {
+    if (!chan) {
       await interaction.reply({
         flags: MessageFlags.Ephemeral,
         content: 'You can only send messages to text or news channels',
@@ -830,9 +864,51 @@ client.on(Events.InteractionCreate, async interaction => {
       await interaction.editReply({
         content: err.message ?? 'Something went wrong',
       });
+    }
+
+    return;
+  }
+
+  if (interaction.commandName === 'start-message') {
+    const chan = interaction.options.getChannel('channel', true, [
+      ChannelType.GuildText,
+      ChannelType.GuildAnnouncement,
+      // Maybe extend this into threads etc at some point
+    ]);
+
+    if (!chan) {
+      await interaction.reply({
+        flags: MessageFlags.Ephemeral,
+        content: 'You must provide a valid channel',
+      });
       return;
     }
 
+    await interaction.deferReply({
+      flags: MessageFlags.Ephemeral,
+    });
+
+    try {
+      await chan.send({
+        embeds: [
+          createEmbed({
+            title: 'Trick or Treat',
+            description: StartMessage,
+            color: ColorEnums.dead,
+            thumbnail: client.user?.displayAvatarURL(),
+          }),
+        ],
+      });
+      await interaction.editReply({
+        content: 'Message successfully sent',
+      });
+    } catch (e) {
+      const err = e as Error;
+      console.error(e);
+      await interaction.editReply({
+        content: err.message ?? 'Something went wrong',
+      });
+    }
     return;
   }
 });

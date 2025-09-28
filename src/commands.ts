@@ -1,4 +1,4 @@
-import {SlashCommandBuilder} from 'discord.js';
+import {ChannelType, SlashCommandBuilder} from 'discord.js';
 import {StoryCategory} from './constants';
 
 const commands = [
@@ -13,7 +13,7 @@ const commands = [
     .setName('backpack')
     .setDescription('Check your stats')
     .addBooleanOption(boolOpt =>
-      boolOpt.setName('public').setDescription('show your backpack to others'),
+      boolOpt.setName('public').setDescription('Show your backpack to others'),
     ),
   new SlashCommandBuilder()
     .setName('leaderboard')
@@ -27,6 +27,9 @@ const commands = [
     .addUserOption(option =>
       option.setName('player').setDescription('██R███').setRequired(true),
     ),
+  new SlashCommandBuilder()
+    .setName('help')
+    .setDescription('List info and commands'),
 
   // Admin only commands
   new SlashCommandBuilder()
@@ -118,6 +121,11 @@ const commands = [
     .setDescription('Send a message as the bot')
     .addChannelOption(chanOpt =>
       chanOpt
+        .addChannelTypes([
+          ChannelType.GuildText,
+          ChannelType.GuildAnnouncement,
+          ChannelType.GuildForum,
+        ])
         .setName('channel')
         .setDescription('channel to send message to')
         .setRequired(true),
@@ -126,6 +134,16 @@ const commands = [
       strOpt
         .setName('message')
         .setDescription('message to send')
+        .setRequired(true),
+    )
+    .setDefaultMemberPermissions(0),
+  new SlashCommandBuilder()
+    .setName('start-message')
+    .setDescription('post the game starting message to a channel')
+    .addChannelOption(chanOpt =>
+      chanOpt
+        .setName('channel')
+        .setDescription('channel to send message to')
         .setRequired(true),
     )
     .setDefaultMemberPermissions(0),

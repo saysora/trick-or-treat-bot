@@ -38,3 +38,31 @@ export function candyPlur(num: number) {
   }
   return 'Candies';
 }
+
+export const commandList = [
+  {
+    cmd: '/go-out',
+    description: 'Use this command to begin trick-or-treating',
+  },
+  {
+    cmd: '/trick-or-treat',
+    aliases: ['/tot'],
+    description: 'Gather candy',
+  },
+  {
+    cmd: '/backpack',
+    description: 'Check your stats',
+  },
+  {
+    cmd: '/leaderboard',
+    description: 'See who has the most candy',
+  },
+  {
+    cmd: '/eat',
+    description: '...What is this?',
+  },
+  {
+    cmd: '/help',
+    description: 'List info and commands',
+  },
+];
