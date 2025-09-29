@@ -89,8 +89,6 @@ export async function getBackpack(
     throw new Error('Could not find player');
   }
 
-  console.log(darkFocus);
-
   const canTrickOrTreat = canTot(player, config);
   const timeUntilTrickOrTreat = timeToTot(player, config);
 
