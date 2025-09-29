@@ -94,11 +94,18 @@ const setFocus = async () => {
   }
 
   if (configCache.startDate && isBeforeDate(configCache.startDate)) {
-    setPreGameStatus(client);
+    if (configCache.endDate) {
+      const timeUntilHalloween = moment(configCache.endDate).fromNow(true);
+
+      client?.user?.setActivity(`${timeUntilHalloween} until Halloween`, {
+        type: ActivityType.Custom,
+      });
+    }
+
     return;
   }
 
-  if (configCache.endDate && isAfterDate(configCache.endDate)) {
+  if (configCache?.endDate && isAfterDate(configCache?.endDate)) {
     setPreGameStatus(client);
     return;
   }
@@ -165,31 +172,6 @@ client.once(Events.ClientReady, async readyClient => {
     theDark = await setTarget(null);
     setStatus(theDark, client);
   }
-
-  const halloweenTimer = setInterval(() => {
-    if (configCache.endDate) {
-      const timeUntilHalloween = moment(configCache.endDate).fromNow(true);
-
-      const minutesUntilHalloween = moment(configCache.endDate).diff(
-        moment(),
-        'minutes',
-      );
-
-      if (minutesUntilHalloween < 0) {
-        clearInterval(halloweenTimer);
-
-        readyClient.user.setActivity('Trick Or Treat or you DIE', {
-          type: ActivityType.Custom,
-        });
-
-        return;
-      }
-
-      readyClient.user.setActivity(`${timeUntilHalloween} until Halloween`, {
-        type: ActivityType.Custom,
-      });
-    }
-  }, 60 * 1000);
 
   // Every 10 minutes we reset the focus
   // or after the focused user takes their turn
