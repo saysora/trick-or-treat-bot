@@ -9,11 +9,9 @@ import {
   Events,
   GatewayIntentBits,
   MessageFlags,
-  NewsChannel,
   Partials,
   REST,
   Routes,
-  TextChannel,
 } from 'discord.js';
 import commands from './commands';
 import {
@@ -70,7 +68,6 @@ import {
 } from './helpers/theDark';
 import {isAfterDate, isBeforeDate} from './helpers/time';
 import {getLeaderBoard} from './helpers/leaderboard';
-import {Channel} from 'node:diagnostics_channel';
 import {StartMessage} from './constants/messages';
 
 // Setup
@@ -175,7 +172,7 @@ client.once(Events.ClientReady, async readyClient => {
 
   // Every 10 minutes we reset the focus
   // or after the focused user takes their turn
-  focusInterval = setInterval(async () => setFocus, focusIntervalTime);
+  focusInterval = setInterval(setFocus, focusIntervalTime);
 });
 
 client.on(Events.InteractionCreate, async interaction => {
@@ -401,7 +398,7 @@ client.on(Events.InteractionCreate, async interaction => {
       clearInterval(focusInterval);
       darkFocus = await setTarget(currentPlayer.id);
       setStatus(darkFocus, client);
-      focusInterval = setInterval(async () => setFocus, focusIntervalTime);
+      focusInterval = setInterval(setFocus, focusIntervalTime);
     }
 
     currentPlayer.status = getRandomStatus();
