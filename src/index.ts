@@ -376,9 +376,9 @@ client.on(Events.InteractionCreate, async interaction => {
     // we fuck with their roll
 
     if (NEGATIVE_STATUS.includes(currentPlayer.status ?? '')) {
-      chance -= randomChance(15, 100);
-      if (chance < 1) {
-        chance = 2; // Hard save someone if their status got them killed
+      const chanceWithNegative = chance - randomChance(15, 100);
+      if (chanceWithNegative > 1) {
+        chance = chanceWithNegative; // Hard save someone if their status got them killed
       }
     }
 
