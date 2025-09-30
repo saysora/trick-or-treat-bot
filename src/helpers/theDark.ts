@@ -33,7 +33,7 @@ export async function setTarget(currentTarget: string | null) {
   }
 
   await theDark.save();
-  await theDark.reload();
+  await theDark.reload({include: {model: Player}});
 
   return theDark;
 }
