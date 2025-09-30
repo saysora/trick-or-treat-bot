@@ -33,6 +33,7 @@ export async function setTarget(currentTarget: string | null) {
   }
 
   await theDark.save();
+  await theDark.reload();
 
   return theDark;
 }
