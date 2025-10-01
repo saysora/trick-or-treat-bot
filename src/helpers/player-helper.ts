@@ -36,6 +36,15 @@ export function timeToTot(player: Player, config: Config) {
     .fromNow(true);
 }
 
+export function calcedWatchTime(player: Player, config: Config) {
+  return moment(player.gatherAttempts > 0 ? player.latestAttempt : new Date())
+    .add(
+      config.cooldownTime,
+      config.cooldownUnit as moment.unitOfTime.DurationConstructor,
+    )
+    .diff(moment(), 'milliseconds', true);
+}
+
 // Player Commands
 
 export async function createPlayer({
@@ -236,6 +245,7 @@ export async function resetAll(): Promise<boolean> {
 
     await Player.destroy({where: {}});
     await TimelineEvent.destroy({where: {}});
+
     return true;
   } catch (e) {
     console.error(e);

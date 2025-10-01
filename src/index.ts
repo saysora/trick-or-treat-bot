@@ -27,6 +27,7 @@ import moment = require('moment');
 import Config from './models/Config';
 import {getConfig, updateConfig} from './classes/ConfigManager';
 import {
+  calcedWatchTime,
   canTot,
   createPlayer,
   eatCandy,
@@ -62,25 +63,29 @@ import {
 import {
   focusIntervalTime,
   getTheDark,
+  randomFocusMessage,
   setPreGameStatus,
   setStatus,
   setTarget,
 } from './helpers/theDark';
-import {isAfterDate, isBeforeDate} from './helpers/time';
+import {calcToMs, isAfterDate, isBeforeDate} from './helpers/time';
 import {getLeaderBoard} from './helpers/leaderboard';
 import {StartMessage} from './constants/messages';
+import {wHook} from './helpers/w-hook';
 
 // Setup
 let configCache: Config;
 
-const {TOKEN, CLIENTID} = process.env;
-const DISC_VARS = [TOKEN, CLIENTID];
+const {TOKEN, CLIENTID, WEBHOOK_URL} = process.env;
+const DISC_VARS = [TOKEN, CLIENTID, WEBHOOK_URL];
 
 DISC_VARS.forEach(discVar => {
   if (!discVar) {
     throw new Error(`Missing ${discVar}`);
   }
 });
+
+const hook = wHook(WEBHOOK_URL!);
 
 let focusInterval: NodeJS.Timeout;
 
@@ -115,7 +120,38 @@ const setFocus = async () => {
 
   theDark = await setTarget(theDark.target_id ?? null);
 
+  clearInterval(focusInterval);
   setStatus(theDark, client);
+  // If there is an actual target we lock on for the duration of 1 whole role
+  if (theDark.target_id && theDark.target) {
+    const cooldownTime =
+      calcToMs(
+        configCache?.cooldownTime,
+        configCache?.cooldownUnit as 's' | 'm',
+      ) ?? focusIntervalTime;
+    // calculate the remaining time of someones roll
+    const remainingTimeInMS = calcedWatchTime(theDark.target, configCache);
+
+    let totalTime = cooldownTime + remainingTimeInMS;
+
+    if (totalTime < 0) {
+      totalTime = focusIntervalTime;
+    }
+
+    focusInterval = setInterval(setFocus, totalTime);
+    await hook?.send({
+      avatarURL: client?.user?.displayAvatarURL(),
+      username: client?.user?.username,
+      embeds: [
+        createEmbed({
+          description: `${randomFocusMessage(theDark.target_id)}`,
+          color: ColorEnums.totalLoss,
+        }),
+      ],
+    });
+  } else {
+    focusInterval = setInterval(setFocus, focusIntervalTime);
+  }
 };
 
 // Should move this somewhere else to clean it up
@@ -163,16 +199,7 @@ client.once(Events.ClientReady, async readyClient => {
     console.error('Could not get a config');
   }
 
-  let theDark = await getTheDark();
-
-  if (theDark) {
-    theDark = await setTarget(null);
-    setStatus(theDark, client);
-  }
-
-  // Every 10 minutes we reset the focus
-  // or after the focused user takes their turn
-  focusInterval = setInterval(setFocus, focusIntervalTime);
+  await setFocus();
 });
 
 client.on(Events.InteractionCreate, async interaction => {
@@ -377,8 +404,8 @@ client.on(Events.InteractionCreate, async interaction => {
 
     if (NEGATIVE_STATUS.includes(currentPlayer.status ?? '')) {
       const chanceWithNegative = chance - randomChance(15, 100);
-      if (chanceWithNegative > 1) {
-        chance = chanceWithNegative; // Hard save someone if their status got them killed
+      if (chanceWithNegative > 11) {
+        chance = chanceWithNegative; // Do not allow negative chance to cause total candy loss or death
       }
     }
 
@@ -386,19 +413,15 @@ client.on(Events.InteractionCreate, async interaction => {
       chance += randomChance(1, 100);
     }
 
-    let darkFocus = await getTheDark();
+    const darkFocus = await getTheDark();
 
     if (darkFocus?.target_id === currentPlayer.id) {
       const chanceWithDark = chance - randomChance(1, 200);
 
-      // Save them from the dark being an immediate kill
       if (chanceWithDark > 0) {
-        chance = chanceWithDark;
+        chance = chanceWithDark; // Do not allow the dark to kill someone outright
       }
-      clearInterval(focusInterval);
-      darkFocus = await setTarget(currentPlayer.id);
-      setStatus(darkFocus, client);
-      focusInterval = setInterval(setFocus, focusIntervalTime);
+      await setFocus();
     }
 
     currentPlayer.status = getRandomStatus();

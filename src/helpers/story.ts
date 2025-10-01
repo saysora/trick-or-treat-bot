@@ -44,7 +44,7 @@ export function storyCategory(num: number): CategoryCandyAndColor {
     case num >= normLoss && num < normWin:
       category = StoryCategory.loss;
       color = ColorEnums.loss;
-      candy = randomChance(lowPayout + 1, critHighPayout);
+      candy = randomChance(lowPayout + 1, critLowPayout);
       break;
     // Total Loss
     case num > totalLoss && num < normLoss:
