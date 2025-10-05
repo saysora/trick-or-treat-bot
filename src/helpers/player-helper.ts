@@ -151,8 +151,8 @@ export async function updatePlayerCandy(player: Player, candy: number) {
 
 // Undead
 enum TargetChance {
-  success = 20,
-  messUp = 10,
+  success = 90,
+  messUp = 30,
   fail = 0,
 }
 
