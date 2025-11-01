@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import {db} from './classes/database';
+import { db } from './classes/database';
 import {
   ActivityType,
   ChannelType,
@@ -25,7 +25,7 @@ import Player from './models/Player';
 import StoryTeller from './classes/StoryTeller';
 import moment = require('moment');
 import Config from './models/Config';
-import {getConfig, updateConfig} from './classes/ConfigManager';
+import { getConfig, updateConfig } from './classes/ConfigManager';
 import {
   calcedWatchTime,
   canTot,
@@ -52,9 +52,9 @@ import {
   totOnCooldown,
 } from './helpers/embeds';
 import TimelineEvent from './models/TimelineEvent';
-import {isGameActive} from './helpers/configcheck';
-import {randomChance} from './helpers/chance';
-import {storyByCategory, storyCategory} from './helpers/story';
+import { isGameActive } from './helpers/configcheck';
+import { randomChance } from './helpers/chance';
+import { storyByCategory, storyCategory } from './helpers/story';
 import {
   getRandomStatus,
   NEGATIVE_STATUS,
@@ -68,15 +68,15 @@ import {
   setStatus,
   setTarget,
 } from './helpers/theDark';
-import {calcToMs, isAfterDate, isBeforeDate} from './helpers/time';
-import {getLeaderBoard} from './helpers/leaderboard';
-import {StartMessage} from './constants/messages';
-import {wHook} from './helpers/w-hook';
+import { calcToMs, isAfterDate, isBeforeDate } from './helpers/time';
+import { getLeaderBoard } from './helpers/leaderboard';
+import { StartMessage } from './constants/messages';
+import { wHook } from './helpers/w-hook';
 
 // Setup
 let configCache: Config;
 
-const {TOKEN, CLIENTID, WEBHOOK_URL} = process.env;
+const { TOKEN, CLIENTID, WEBHOOK_URL } = process.env;
 const DISC_VARS = [TOKEN, CLIENTID, WEBHOOK_URL];
 
 DISC_VARS.forEach(discVar => {
@@ -172,7 +172,7 @@ const client = new Client({
   ],
 });
 
-const rest = new REST({version: '10'}).setToken(process.env.TOKEN!);
+const rest = new REST({ version: '10' }).setToken(process.env.TOKEN!);
 
 void (async () => {
   try {
@@ -305,7 +305,7 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   if (interaction.commandName === 'go-out') {
-    const {content, active} = isGameActive(configCache, interaction.channelId);
+    const { content, active } = isGameActive(configCache, interaction.channelId);
 
     if (!active) {
       await interaction.reply({
@@ -358,7 +358,7 @@ client.on(Events.InteractionCreate, async interaction => {
     interaction.commandName === 'trick-or-treat' ||
     interaction.commandName === 'tot'
   ) {
-    const {content, active} = isGameActive(configCache, interaction.channelId);
+    const { content, active } = isGameActive(configCache, interaction.channelId);
 
     if (!active) {
       await interaction.reply({
@@ -425,7 +425,7 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     currentPlayer.status = getRandomStatus();
-    const {category, candy, color} = storyCategory(chance);
+    const { category, candy, color } = storyCategory(chance);
     const story = await storyByCategory(category);
 
     if (!story) {
@@ -485,15 +485,15 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   if (interaction.commandName === 'backpack') {
-    const {content, active} = isGameActive(configCache, interaction.channelId);
-
-    if (!active) {
-      await interaction.reply({
-        content: content ?? 'Something went wrong',
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
-    }
+    const { active } = isGameActive(configCache, interaction.channelId);
+    //
+    // if (!active) {
+    //   await interaction.reply({
+    //     content: content ?? 'Something went wrong',
+    //     flags: MessageFlags.Ephemeral,
+    //   });
+    //   return;
+    // }
 
     const pub = interaction.options.getBoolean('public');
 
@@ -516,6 +516,7 @@ client.on(Events.InteractionCreate, async interaction => {
       interaction.user,
       configCache,
       currentDark?.target_id === interaction.user.id,
+      active
     );
 
     await interaction.editReply({
@@ -526,21 +527,21 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   if (interaction.commandName === 'leaderboard') {
-    const {content, active} = isGameActive(configCache, interaction.channelId);
+    const { content, active } = isGameActive(configCache, interaction.channelId);
 
-    if (!active) {
-      await interaction.reply({
-        content: content ?? 'Something went wrong',
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
-    }
+    // if (!active) {
+    //   await interaction.reply({
+    //     content: content ?? 'Something went wrong',
+    //     flags: MessageFlags.Ephemeral,
+    //   });
+    //   return;
+    // }
 
     await interaction.deferReply();
 
     const wantedPage = Number(interaction.options.get('page')?.value ?? 0);
 
-    const {players, page, pages} = await getLeaderBoard(wantedPage);
+    const { players, page, pages } = await getLeaderBoard(wantedPage);
 
     if (wantedPage > pages) {
       eventEmbed.setTitle('No page found');
@@ -579,7 +580,7 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   if (interaction.commandName === 'eat') {
-    const {content, active} = isGameActive(configCache, interaction.channelId);
+    const { content, active } = isGameActive(configCache, interaction.channelId);
 
     if (!active) {
       await interaction.reply({
@@ -701,7 +702,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
   if (interaction.commandName === 'help') {
     let msg = '';
-    commandList.forEach(({cmd, aliases, description}) => {
+    commandList.forEach(({ cmd, aliases, description }) => {
       msg += `**${cmd}**: ${description}`;
 
       if (aliases?.length) {
@@ -856,7 +857,7 @@ client.on(Events.InteractionCreate, async interaction => {
     });
 
     try {
-      await chan.send({content: msg});
+      await chan.send({ content: msg });
       await interaction.editReply({
         content: 'Message successfully sent',
       });

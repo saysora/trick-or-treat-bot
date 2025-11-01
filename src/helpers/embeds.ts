@@ -1,8 +1,8 @@
-import {ColorResolvable, EmbedBuilder, User} from 'discord.js';
-import {ColorEnums, StoryCategory} from '../constants';
+import { ColorResolvable, EmbedBuilder, User } from 'discord.js';
+import { ColorEnums, StoryCategory } from '../constants';
 import Config from '../models/Config';
-import {canTot, getPlayer, timeToTot} from './player-helper';
-import {determineStatusType} from './statuses';
+import { canTot, getPlayer, timeToTot } from './player-helper';
+import { determineStatusType } from './statuses';
 import Player from '../models/Player';
 import Prompt from '../models/Prompt';
 
@@ -11,7 +11,7 @@ interface EmbedOptions {
   thumbnail?: string;
   description?: string;
   color?: string;
-  fields?: {name: string; value: string; inline?: boolean}[];
+  fields?: { name: string; value: string; inline?: boolean }[];
   footer?: string;
 }
 
@@ -81,6 +81,7 @@ export async function getBackpack(
   user: User,
   config: Config,
   darkFocus: boolean,
+  active?: boolean
 ) {
   let title = '🎒 Backpack';
   const player = await getPlayer(user.id);
@@ -152,6 +153,10 @@ export async function getBackpack(
     ];
   }
 
+  if (!active) {
+    footerMessage = 'You can no longer trick-or-treat'
+  }
+
   return createEmbed({
     title,
     description: status,
@@ -190,11 +195,11 @@ export function storyEmbed({
   });
 
   if (story.category.name === StoryCategory.falseWin) {
-    embed.setFooter({text: `You have ${player.candy} 🍬`});
+    embed.setFooter({ text: `You have ${player.candy} 🍬` });
   }
 
   if (story.category.name === StoryCategory.gameover) {
-    embed.setFooter({text: 'You are DEAD'});
+    embed.setFooter({ text: 'You are DEAD' });
   }
 
   if (story.category.name === StoryCategory.totalLoss) {
