@@ -71,7 +71,8 @@ export async function getPlayer(id: string) {
 }
 
 export async function getPlayersByExpStatus(mins: number): Promise<Player[]> {
-  const nowMinusMins = new Date(new Date().getTime() - mins * 60 * 1000);
+  // Cut in half so they can get possibly two status changes per cooldown time
+  const nowMinusMins = new Date(new Date().getTime() - (mins / 2) * 60 * 1000);
 
   const players = await Player.findAll({
     where: {
