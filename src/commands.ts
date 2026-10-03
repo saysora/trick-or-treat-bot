@@ -1,150 +1,135 @@
-import {ChannelType, SlashCommandBuilder} from 'discord.js';
-import {StoryCategory} from './constants';
+import { ChannelType, SlashCommandBuilder } from "discord.js";
+import { PlayerCommands, REFRESH_CANDY_COST, StoryCategory } from "./constants";
 
 const commands = [
   new SlashCommandBuilder()
-    .setName('go-out')
-    .setDescription('Use this command to begin trick-or-treating'),
+    .setName(PlayerCommands.go_out)
+    .setDescription("Use this command to begin trick-or-treating"),
+  new SlashCommandBuilder().setName(PlayerCommands.trick_or_treat).setDescription("Gather candy"),
+  new SlashCommandBuilder().setName(PlayerCommands.tot).setDescription("Gather candy"),
   new SlashCommandBuilder()
-    .setName('trick-or-treat')
-    .setDescription('Gather candy'),
-  new SlashCommandBuilder().setName('tot').setDescription('Gather candy'),
+    .setName(PlayerCommands.refresh)
+    .setDescription(`Eat ${REFRESH_CANDY_COST} of your own candy to refresh your status`),
   new SlashCommandBuilder()
-    .setName('backpack')
-    .setDescription('Check your stats')
-    .addBooleanOption(boolOpt =>
-      boolOpt.setName('public').setDescription('Show your backpack to others'),
+    .setName(PlayerCommands.bp)
+    .setDescription("Check your stats")
+    .addBooleanOption((boolOpt) =>
+      boolOpt.setName("public").setDescription("Show your backpack to others"),
     ),
   new SlashCommandBuilder()
-    .setName('leaderboard')
-    .setDescription('See who has the most candy')
-    .addNumberOption(option =>
-      option.setName('page').setDescription('Page of the leaderboard to check'),
+    .setName(PlayerCommands.lb)
+    .setDescription("See who has the most candy")
+    .addNumberOption((option) =>
+      option.setName("page").setDescription("Page of the leaderboard to check"),
     ),
   new SlashCommandBuilder()
-    .setName('eat')
-    .setDescription('███ █L███R█ █████')
-    .addUserOption(option =>
-      option.setName('player').setDescription('██R███').setRequired(true),
-    ),
-  new SlashCommandBuilder()
-    .setName('help')
-    .setDescription('List info and commands'),
+    .setName(PlayerCommands.eat)
+    .setDescription("███ █L███R█ █████")
+    .addUserOption((option) => option.setName("player").setDescription("██R███").setRequired(true)),
+  new SlashCommandBuilder().setName(PlayerCommands.help).setDescription("List info and commands"),
 
   // Admin only commands
   new SlashCommandBuilder()
-    .setName('config-get')
-    .setDescription('View the current game config')
+    .setName("config-get")
+    .setDescription("View the current game config")
     .setDefaultMemberPermissions(0),
   new SlashCommandBuilder()
-    .setName('config-update')
-    .setDescription('Update the games config')
-    .addStringOption(option =>
+    .setName("config-update")
+    .setDescription("Update the games config")
+    .addStringOption((option) =>
       option
-        .setName('item')
-        .setDescription('Select config item to change')
+        .setName("item")
+        .setDescription("Select config item to change")
         .setRequired(true)
         .addChoices(
-          {name: 'Game Enabled', value: 'enabled'},
-          {name: 'Cooldown Enabled', value: 'cooldownEnabled'},
-          {name: 'Cooldown Time Value', value: 'cooldownTime'},
-          {name: 'Cooldown Time Unit', value: 'cooldownUnit'},
-          {name: 'Game Start Date', value: 'startDate'},
-          {name: 'Game End Date', value: 'endDate'},
+          { name: "Game Enabled", value: "enabled" },
+          { name: "Cooldown Enabled", value: "cooldownEnabled" },
+          { name: "Cooldown Time Value", value: "cooldownTime" },
+          { name: "Cooldown Time Unit", value: "cooldownUnit" },
+          { name: "Game Start Date", value: "startDate" },
+          { name: "Game End Date", value: "endDate" },
         ),
     )
-    .addStringOption(option =>
-      option
-        .setName('value')
-        .setDescription('Set config item value')
-        .setRequired(true),
+    .addStringOption((option) =>
+      option.setName("value").setDescription("Set config item value").setRequired(true),
     )
     .setDefaultMemberPermissions(0),
   // Story commands
   new SlashCommandBuilder()
-    .setName('story-create')
-    .setDescription('Add a story to the list')
-    .addStringOption(option =>
+    .setName("story-create")
+    .setDescription("Add a story to the list")
+    .addStringOption((option) =>
       option
-        .setName('category')
-        .setDescription('The category of the story')
+        .setName("category")
+        .setDescription("The category of the story")
         .setRequired(true)
         .addChoices(
           {
-            name: 'Critical Win',
+            name: "Critical Win",
             value: StoryCategory.critWin,
           },
-          {name: 'Win', value: StoryCategory.win},
+          { name: "Win", value: StoryCategory.win },
           {
-            name: 'Single Win',
+            name: "Single Win",
             value: StoryCategory.singularWin,
           },
           {
-            name: 'False Win',
+            name: "False Win",
             value: StoryCategory.falseWin,
           },
           {
-            name: 'Loss',
+            name: "Loss",
             value: StoryCategory.loss,
           },
           {
-            name: 'Total Loss',
+            name: "Total Loss",
             value: StoryCategory.totalLoss,
           },
           {
-            name: 'Game Over',
+            name: "Game Over",
             value: StoryCategory.gameover,
           },
         ),
     )
-    .addStringOption(option =>
-      option
-        .setName('content')
-        .setDescription('Content of the story')
-        .setRequired(true),
+    .addStringOption((option) =>
+      option.setName("content").setDescription("Content of the story").setRequired(true),
     )
     .setDefaultMemberPermissions(0),
   new SlashCommandBuilder()
-    .setName('story-delete')
-    .setDescription('Delete a story from the list')
-    .addStringOption(option =>
-      option.setName('id').setDescription('Id of the story').setRequired(true),
+    .setName("story-delete")
+    .setDescription("Delete a story from the list")
+    .addStringOption((option) =>
+      option.setName("id").setDescription("Id of the story").setRequired(true),
     )
     .setDefaultMemberPermissions(0),
   new SlashCommandBuilder()
-    .setName('reset-all')
-    .setDescription('Resets all player data')
+    .setName("reset-all")
+    .setDescription("Resets all player data")
     .setDefaultMemberPermissions(0),
   // Messages
   new SlashCommandBuilder()
-    .setName('send')
-    .setDescription('Send a message as the bot')
-    .addChannelOption(chanOpt =>
+    .setName("send")
+    .setDescription("Send a message as the bot")
+    .addChannelOption((chanOpt) =>
       chanOpt
         .addChannelTypes([
           ChannelType.GuildText,
           ChannelType.GuildAnnouncement,
           ChannelType.GuildForum,
         ])
-        .setName('channel')
-        .setDescription('channel to send message to')
+        .setName("channel")
+        .setDescription("channel to send message to")
         .setRequired(true),
     )
-    .addStringOption(strOpt =>
-      strOpt
-        .setName('message')
-        .setDescription('message to send')
-        .setRequired(true),
+    .addStringOption((strOpt) =>
+      strOpt.setName("message").setDescription("message to send").setRequired(true),
     )
     .setDefaultMemberPermissions(0),
   new SlashCommandBuilder()
-    .setName('start-message')
-    .setDescription('post the game starting message to a channel')
-    .addChannelOption(chanOpt =>
-      chanOpt
-        .setName('channel')
-        .setDescription('channel to send message to')
-        .setRequired(true),
+    .setName("start-message")
+    .setDescription("post the game starting message to a channel")
+    .addChannelOption((chanOpt) =>
+      chanOpt.setName("channel").setDescription("channel to send message to").setRequired(true),
     )
     .setDefaultMemberPermissions(0),
 ];

@@ -14,7 +14,15 @@ import {
   Routes,
 } from "discord.js";
 import commands from "./commands";
-import { candyPlur, ColorEnums, commandList, StoryCategory, TIMELINE_EVENT } from "./constants";
+import {
+  candyPlur,
+  ColorEnums,
+  commandList,
+  PlayerCommands,
+  REFRESH_CANDY_COST,
+  StoryCategory,
+  TIMELINE_EVENT,
+} from "./constants";
 import Player from "./models/Player";
 import StoryTeller from "./classes/StoryTeller";
 import moment = require("moment");
@@ -26,7 +34,6 @@ import {
   createPlayer,
   eatCandy,
   getPlayer,
-  getPlayersByExpStatus,
   killPlayer,
   playerLoseAllCandy,
   resetAll,
@@ -51,7 +58,12 @@ import TimelineEvent from "./models/TimelineEvent";
 import { isGameActive } from "./helpers/configcheck";
 import { randomChance } from "./helpers/chance";
 import { storyByCategory, storyCategory } from "./helpers/story";
-import { getRandomStatus, NEGATIVE_STATUS, POSITIVE_STATUS } from "./helpers/statuses";
+import {
+  determineStatusType,
+  getRandomStatus,
+  NEGATIVE_STATUS,
+  POSITIVE_STATUS,
+} from "./helpers/statuses";
 import {
   focusIntervalTime,
   getTheDark,
@@ -186,50 +198,6 @@ client.once(Events.ClientReady, async (readyClient) => {
   }
 
   await setFocus();
-
-  // Initial staus check
-  const pIds = await updatePlayersExpStatuses();
-  if (pIds?.length > 0) {
-    let description = `${pIds.map((i) => `<@${i}>`).join("\n")}\n all feel a new sense of dread`;
-
-    if (pIds.length === 1) {
-      description = `${pIds.map((i) => `<@${i}>`).join("\n")} feels a new sense of dread`;
-    }
-
-    await hook?.send({
-      avatarURL: client?.user?.displayAvatarURL(),
-      username: client?.user?.username,
-      embeds: [
-        createEmbed({
-          description,
-          color: ColorEnums.normWin,
-        }),
-      ],
-    });
-  }
-
-  setInterval(async () => {
-    const playerIds = await updatePlayersExpStatuses();
-
-    if (playerIds?.length > 0) {
-      let description = `${playerIds.map((i) => `<@${i}>`).join("\n")}\n all feel a new sense of dread`;
-
-      if (playerIds.length === 1) {
-        description = `${playerIds.map((i) => `<@${i}>`).join("\n")} feels a new sense of dread`;
-      }
-
-      await hook?.send({
-        avatarURL: client?.user?.displayAvatarURL(),
-        username: client?.user?.username,
-        embeds: [
-          createEmbed({
-            description,
-            color: ColorEnums.normWin,
-          }),
-        ],
-      });
-    }
-  }, 60 * 1000);
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -334,7 +302,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
-  if (interaction.commandName === "go-out") {
+  if (interaction.commandName === PlayerCommands.go_out) {
     const { content, active } = isGameActive(configCache, interaction.channelId);
 
     if (!active) {
@@ -384,7 +352,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
-  if (interaction.commandName === "trick-or-treat" || interaction.commandName === "tot") {
+  if (
+    interaction.commandName === PlayerCommands.trick_or_treat ||
+    interaction.commandName === PlayerCommands.tot
+  ) {
+
     const { content, active } = isGameActive(configCache, interaction.channelId);
 
     if (!active) {
@@ -514,7 +486,92 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
-  if (interaction.commandName === "backpack") {
+  if (interaction.commandName === PlayerCommands.refresh) {
+
+    const { content, active } = isGameActive(configCache, interaction.channelId);
+
+    if (!active) {
+      await interaction.reply({
+        content: content ?? "Something went wrong",
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    await interaction.deferReply();
+
+    const currentPlayer = await getPlayer(interaction.user.id);
+
+    if (!currentPlayer) {
+      await interaction.editReply({
+        embeds: [notPlaying()],
+      });
+      return;
+    }
+
+    if (currentPlayer.isDead) {
+      await interaction.editReply({
+        embeds: [deadEmbed(currentPlayer)],
+      });
+      return;
+    }
+
+    if (currentPlayer.candy < REFRESH_CANDY_COST) {
+      await interaction.editReply({
+        embeds: [
+          createEmbed({
+            description: "You do not have enough candy to refresh your status...",
+          }),
+        ],
+      });
+
+      return;
+    }
+
+    currentPlayer.candy = currentPlayer.candy - REFRESH_CANDY_COST;
+    currentPlayer.lostCandyCount += REFRESH_CANDY_COST;
+    currentPlayer.status = getRandomStatus();
+    currentPlayer.statusSet = new Date();
+    await currentPlayer.save();
+
+    await TimelineEvent.create({
+      playerId: currentPlayer.id,
+      promptId: null,
+      eventType: TIMELINE_EVENT.LOST,
+      roll: REFRESH_CANDY_COST,
+      candyAmount: currentPlayer.candy,
+      date: new Date(),
+    });
+
+    const statusKind = determineStatusType(currentPlayer.status);
+    let description = `You eat **${REFRESH_CANDY_COST} CANDIES** to feel better and end up... \n\nfeeling **${currentPlayer.status?.toUpperCase()}**`;
+    let color = ColorEnums.notReallyWin;
+
+    if (statusKind === "positive") {
+      color = ColorEnums.win;
+    } else if (statusKind === "negative") {
+      color = ColorEnums.loss;
+    }
+
+    const thumbnail = interaction.user.avatarURL() ?? interaction.user.displayAvatarURL();
+
+
+    await interaction.editReply({
+      embeds: [
+        createEmbed({
+          title: `🔃 Refresh`,
+          thumbnail,
+          description,
+          color,
+          footer: `You now have ${currentPlayer.candy} 🍬`,
+        }),
+      ],
+    });
+
+    return;
+  }
+
+  if (interaction.commandName === PlayerCommands.bp) {
     const { active } = isGameActive(configCache, interaction.channelId);
     //
     // if (!active) {
@@ -555,7 +612,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
-  if (interaction.commandName === "leaderboard") {
+  if (interaction.commandName === PlayerCommands.lb) {
     const { content, active } = isGameActive(configCache, interaction.channelId);
 
     if (!active) {
@@ -608,7 +665,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
-  if (interaction.commandName === "eat") {
+  if (interaction.commandName === PlayerCommands.eat) {
     const { content, active } = isGameActive(configCache, interaction.channelId);
 
     if (!active) {
@@ -729,7 +786,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
-  if (interaction.commandName === "help") {
+  if (interaction.commandName === PlayerCommands.help) {
     let msg = "";
     commandList.forEach(({ cmd, aliases, description }) => {
       msg += `**${cmd}**: ${description}`;
