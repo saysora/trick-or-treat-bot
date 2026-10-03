@@ -1,5 +1,5 @@
-import 'dotenv/config';
-import { db } from './classes/database';
+import "dotenv/config";
+import { db } from "./classes/database";
 import {
   ActivityType,
   ChannelType,
@@ -12,31 +12,27 @@ import {
   Partials,
   REST,
   Routes,
-} from 'discord.js';
-import commands from './commands';
-import {
-  candyPlur,
-  ColorEnums,
-  commandList,
-  StoryCategory,
-  TIMELINE_EVENT,
-} from './constants';
-import Player from './models/Player';
-import StoryTeller from './classes/StoryTeller';
-import moment = require('moment');
-import Config from './models/Config';
-import { getConfig, updateConfig } from './classes/ConfigManager';
+} from "discord.js";
+import commands from "./commands";
+import { candyPlur, ColorEnums, commandList, StoryCategory, TIMELINE_EVENT } from "./constants";
+import Player from "./models/Player";
+import StoryTeller from "./classes/StoryTeller";
+import moment = require("moment");
+import Config from "./models/Config";
+import { getConfig, updateConfig } from "./classes/ConfigManager";
 import {
   calcedWatchTime,
   canTot,
   createPlayer,
   eatCandy,
   getPlayer,
+  getPlayersByExpStatus,
   killPlayer,
   playerLoseAllCandy,
   resetAll,
   updatePlayerCandy,
-} from './helpers/player-helper';
+  updatePlayersExpStatuses,
+} from "./helpers/player-helper";
 import {
   alreadyPlaying,
   badEmbed,
@@ -50,16 +46,12 @@ import {
   notPlaying,
   storyEmbed,
   totOnCooldown,
-} from './helpers/embeds';
-import TimelineEvent from './models/TimelineEvent';
-import { isGameActive } from './helpers/configcheck';
-import { randomChance } from './helpers/chance';
-import { storyByCategory, storyCategory } from './helpers/story';
-import {
-  getRandomStatus,
-  NEGATIVE_STATUS,
-  POSITIVE_STATUS,
-} from './helpers/statuses';
+} from "./helpers/embeds";
+import TimelineEvent from "./models/TimelineEvent";
+import { isGameActive } from "./helpers/configcheck";
+import { randomChance } from "./helpers/chance";
+import { storyByCategory, storyCategory } from "./helpers/story";
+import { getRandomStatus, NEGATIVE_STATUS, POSITIVE_STATUS } from "./helpers/statuses";
 import {
   focusIntervalTime,
   getTheDark,
@@ -67,11 +59,11 @@ import {
   setPreGameStatus,
   setStatus,
   setTarget,
-} from './helpers/theDark';
-import { calcToMs, isAfterDate, isBeforeDate } from './helpers/time';
-import { getLeaderBoard } from './helpers/leaderboard';
-import { StartMessage } from './constants/messages';
-import { wHook } from './helpers/w-hook';
+} from "./helpers/theDark";
+import { calcToMs, isAfterDate, isBeforeDate } from "./helpers/time";
+import { getLeaderBoard } from "./helpers/leaderboard";
+import { StartMessage } from "./constants/messages";
+import { wHook } from "./helpers/w-hook";
 
 // Setup
 let configCache: Config;
@@ -79,7 +71,7 @@ let configCache: Config;
 const { TOKEN, CLIENTID, WEBHOOK_URL } = process.env;
 const DISC_VARS = [TOKEN, CLIENTID, WEBHOOK_URL];
 
-DISC_VARS.forEach(discVar => {
+DISC_VARS.forEach((discVar) => {
   if (!discVar) {
     throw new Error(`Missing ${discVar}`);
   }
@@ -125,10 +117,8 @@ const setFocus = async () => {
   // If there is an actual target we lock on for the duration of 1 whole role
   if (theDark.target_id && theDark.target) {
     const cooldownTime =
-      calcToMs(
-        configCache?.cooldownTime,
-        configCache?.cooldownUnit as 's' | 'm',
-      ) ?? focusIntervalTime;
+      calcToMs(configCache?.cooldownTime, configCache?.cooldownUnit as "s" | "m") ??
+      focusIntervalTime;
     // calculate the remaining time of someones roll
     const remainingTimeInMS = calcedWatchTime(theDark.target, configCache);
 
@@ -164,21 +154,16 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildMessageReactions,
   ],
-  partials: [
-    Partials.Message,
-    Partials.Channel,
-    Partials.GuildMember,
-    Partials.Reaction,
-  ],
+  partials: [Partials.Message, Partials.Channel, Partials.GuildMember, Partials.Reaction],
 });
 
-const rest = new REST({ version: '10' }).setToken(process.env.TOKEN!);
+const rest = new REST({ version: "10" }).setToken(process.env.TOKEN!);
 
 void (async () => {
   try {
     console.info(`Refreshing ${Object.keys(commands).length} commands.`);
     const data = (await rest.put(Routes.applicationCommands(CLIENTID!), {
-      body: commands.map(command => command.toJSON()),
+      body: commands.map((command) => command.toJSON()),
     })) as string[];
     console.info(`Successfully reloaded ${data.length} (/) commands`);
   } catch (e) {
@@ -188,7 +173,7 @@ void (async () => {
 
 let botUser: ClientUser;
 
-client.once(Events.ClientReady, async readyClient => {
+client.once(Events.ClientReady, async (readyClient) => {
   botUser = readyClient.user;
   console.info(`Online as ${botUser.tag}`);
   await db.authenticate();
@@ -196,47 +181,92 @@ client.once(Events.ClientReady, async readyClient => {
   try {
     configCache = await getConfig();
   } catch (e) {
-    console.error('Could not get a config');
+    console.error(e);
+    console.error("Could not get a config");
   }
 
   await setFocus();
+
+  // Initial staus check
+  const pIds = await updatePlayersExpStatuses();
+  if (pIds?.length > 0) {
+    let description = `${pIds.map((i) => `<@${i}>`).join("\n")}\n all feel a new sense of dread`;
+
+    if (pIds.length === 1) {
+      description = `${pIds.map((i) => `<@${i}>`).join("\n")} feels a new sense of dread`;
+    }
+
+    await hook?.send({
+      avatarURL: client?.user?.displayAvatarURL(),
+      username: client?.user?.username,
+      embeds: [
+        createEmbed({
+          description,
+          color: ColorEnums.normWin,
+        }),
+      ],
+    });
+  }
+
+  setInterval(async () => {
+    const playerIds = await updatePlayersExpStatuses();
+
+    if (playerIds?.length > 0) {
+      let description = `${playerIds.map((i) => `<@${i}>`).join("\n")}\n all feel a new sense of dread`;
+
+      if (playerIds.length === 1) {
+        description = `${playerIds.map((i) => `<@${i}>`).join("\n")} feels a new sense of dread`;
+      }
+
+      await hook?.send({
+        avatarURL: client?.user?.displayAvatarURL(),
+        username: client?.user?.username,
+        embeds: [
+          createEmbed({
+            description,
+            color: ColorEnums.normWin,
+          }),
+        ],
+      });
+    }
+  }, 60 * 1000);
 });
 
-client.on(Events.InteractionCreate, async interaction => {
+client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
   if (interaction.user.bot) return;
 
   const eventEmbed = new EmbedBuilder().setColor(ColorEnums.base);
 
-  if (interaction.commandName === 'config-get') {
+  if (interaction.commandName === "config-get") {
     await interaction.deferReply({
       flags: MessageFlags.Ephemeral,
     });
 
-    eventEmbed.setTitle('Game Config');
+    eventEmbed.setTitle("Game Config");
     eventEmbed.setFields([
       {
-        name: 'Enabled',
+        name: "Enabled",
         value: `${configCache.enabled}`,
       },
       {
-        name: 'Cooldown Enabled',
+        name: "Cooldown Enabled",
         value: `${configCache.cooldownEnabled}`,
       },
       {
-        name: 'Cooldown Time',
+        name: "Cooldown Time",
         value: `${configCache.cooldownTime}`,
       },
       {
-        name: 'Cooldown Time Unit',
+        name: "Cooldown Time Unit",
         value: `${configCache.cooldownUnit}`,
       },
       {
-        name: 'Game Start Date ',
+        name: "Game Start Date ",
         value: `${configCache.startDate}`,
       },
       {
-        name: 'Game End Date',
+        name: "Game End Date",
         value: `${configCache.endDate}`,
       },
     ]);
@@ -248,17 +278,17 @@ client.on(Events.InteractionCreate, async interaction => {
     return;
   }
 
-  if (interaction.commandName === 'config-update') {
+  if (interaction.commandName === "config-update") {
     await interaction.deferReply({
       flags: MessageFlags.Ephemeral,
     });
 
-    const item = interaction.options.getString('item');
-    const value = interaction.options.getString('value');
+    const item = interaction.options.getString("item");
+    const value = interaction.options.getString("value");
 
     if (!item && !value) {
-      eventEmbed.setTitle('Could not update');
-      eventEmbed.setDescription('Could not find item or value');
+      eventEmbed.setTitle("Could not update");
+      eventEmbed.setDescription("Could not find item or value");
       await interaction.editReply({
         embeds: [eventEmbed],
       });
@@ -266,33 +296,33 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     configCache = await updateConfig({
-      [item as keyof Config]: value === 'null' ? null : value,
+      [item as keyof Config]: value === "null" ? null : value,
     });
 
-    eventEmbed.setTitle('Game Config Updated');
+    eventEmbed.setTitle("Game Config Updated");
     eventEmbed.setFields([
       {
-        name: 'Enabled',
+        name: "Enabled",
         value: `${configCache.enabled}`,
       },
       {
-        name: 'Cooldown Enabled',
+        name: "Cooldown Enabled",
         value: `${configCache.cooldownEnabled}`,
       },
       {
-        name: 'Cooldown Time',
+        name: "Cooldown Time",
         value: `${configCache.cooldownTime}`,
       },
       {
-        name: 'Cooldown Time Unit',
+        name: "Cooldown Time Unit",
         value: `${configCache.cooldownUnit}`,
       },
       {
-        name: 'Game Start Date ',
+        name: "Game Start Date ",
         value: `${configCache.startDate}`,
       },
       {
-        name: 'Game End Date',
+        name: "Game End Date",
         value: `${configCache.endDate}`,
       },
     ]);
@@ -304,12 +334,12 @@ client.on(Events.InteractionCreate, async interaction => {
     return;
   }
 
-  if (interaction.commandName === 'go-out') {
+  if (interaction.commandName === "go-out") {
     const { content, active } = isGameActive(configCache, interaction.channelId);
 
     if (!active) {
       await interaction.reply({
-        content: content ?? 'Something went wrong',
+        content: content ?? "Something went wrong",
         flags: MessageFlags.Ephemeral,
       });
       return;
@@ -354,15 +384,12 @@ client.on(Events.InteractionCreate, async interaction => {
     return;
   }
 
-  if (
-    interaction.commandName === 'trick-or-treat' ||
-    interaction.commandName === 'tot'
-  ) {
+  if (interaction.commandName === "trick-or-treat" || interaction.commandName === "tot") {
     const { content, active } = isGameActive(configCache, interaction.channelId);
 
     if (!active) {
       await interaction.reply({
-        content: content ?? 'Something went wrong',
+        content: content ?? "Something went wrong",
         flags: MessageFlags.Ephemeral,
       });
       return;
@@ -370,7 +397,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
     await interaction.deferReply();
 
-    eventEmbed.setTitle('Trick or Treat');
+    eventEmbed.setTitle("Trick or Treat");
 
     const currentPlayer = await getPlayer(interaction.user.id);
 
@@ -402,14 +429,14 @@ client.on(Events.InteractionCreate, async interaction => {
     // Depending on the player status or the evils focus
     // we fuck with their roll
 
-    if (NEGATIVE_STATUS.includes(currentPlayer.status ?? '')) {
+    if (NEGATIVE_STATUS.includes(currentPlayer.status ?? "")) {
       const chanceWithNegative = chance - randomChance(15, 100);
       if (chanceWithNegative > 11) {
         chance = chanceWithNegative; // Do not allow negative chance to cause total candy loss or death
       }
     }
 
-    if (POSITIVE_STATUS.includes(currentPlayer.status ?? '')) {
+    if (POSITIVE_STATUS.includes(currentPlayer.status ?? "")) {
       chance += randomChance(1, 100);
     }
 
@@ -425,11 +452,14 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     currentPlayer.status = getRandomStatus();
+    // Update the time of the last status
+    currentPlayer.statusSet = new Date();
+
     const { category, candy, color } = storyCategory(chance);
     const story = await storyByCategory(category);
 
     if (!story) {
-      throw new Error('Could not get a story');
+      throw new Error("Could not get a story");
     }
 
     let updatedPlayer: Player = currentPlayer;
@@ -484,7 +514,7 @@ client.on(Events.InteractionCreate, async interaction => {
     return;
   }
 
-  if (interaction.commandName === 'backpack') {
+  if (interaction.commandName === "backpack") {
     const { active } = isGameActive(configCache, interaction.channelId);
     //
     // if (!active) {
@@ -495,7 +525,7 @@ client.on(Events.InteractionCreate, async interaction => {
     //   return;
     // }
 
-    const pub = interaction.options.getBoolean('public');
+    const pub = interaction.options.getBoolean("public");
 
     await interaction.deferReply({
       flags: !pub ? MessageFlags.Ephemeral : undefined,
@@ -505,8 +535,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
     if (!currentPlayer) {
       await interaction.editReply({
-        content:
-          'You aren not trick-or-treating yet! Use the /go-out command to start',
+        content: "You aren not trick-or-treating yet! Use the /go-out command to start",
       });
       return;
     }
@@ -516,7 +545,7 @@ client.on(Events.InteractionCreate, async interaction => {
       interaction.user,
       configCache,
       currentDark?.target_id === interaction.user.id,
-      active
+      active,
     );
 
     await interaction.editReply({
@@ -526,25 +555,25 @@ client.on(Events.InteractionCreate, async interaction => {
     return;
   }
 
-  if (interaction.commandName === 'leaderboard') {
+  if (interaction.commandName === "leaderboard") {
     const { content, active } = isGameActive(configCache, interaction.channelId);
 
-    // if (!active) {
-    //   await interaction.reply({
-    //     content: content ?? 'Something went wrong',
-    //     flags: MessageFlags.Ephemeral,
-    //   });
-    //   return;
-    // }
+    if (!active) {
+      await interaction.reply({
+        content: content ?? "Something went wrong",
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
 
     await interaction.deferReply();
 
-    const wantedPage = Number(interaction.options.get('page')?.value ?? 0);
+    const wantedPage = Number(interaction.options.get("page")?.value ?? 0);
 
     const { players, page, pages } = await getLeaderBoard(wantedPage);
 
     if (wantedPage > pages) {
-      eventEmbed.setTitle('No page found');
+      eventEmbed.setTitle("No page found");
       eventEmbed.setDescription(`There are only ${pages} leaderboard pages`);
       await interaction.editReply({
         embeds: [eventEmbed],
@@ -553,18 +582,18 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     if (players.length === 0) {
-      eventEmbed.setDescription('No players yet...');
+      eventEmbed.setDescription("No players yet...");
       await interaction.editReply({
         embeds: [eventEmbed],
       });
       return;
     }
 
-    eventEmbed.setTitle('Sugar Daddies');
-    let lbString = '';
+    eventEmbed.setTitle("Sugar Daddies");
+    let lbString = "";
 
     players.forEach((player, i) => {
-      lbString += `**${page === 1 ? i + 1 : (page - 1) * 10 + (i + 1)}**. <@${player.id}> - ${!player.isDead ? `${player.candy} 🍬` : '💀'}\n`;
+      lbString += `**${page === 1 ? i + 1 : (page - 1) * 10 + (i + 1)}**. <@${player.id}> - ${!player.isDead ? `${player.candy} 🍬` : "💀"}\n`;
     });
 
     eventEmbed.setDescription(lbString);
@@ -579,12 +608,12 @@ client.on(Events.InteractionCreate, async interaction => {
     return;
   }
 
-  if (interaction.commandName === 'eat') {
+  if (interaction.commandName === "eat") {
     const { content, active } = isGameActive(configCache, interaction.channelId);
 
     if (!active) {
       await interaction.reply({
-        content: content ?? 'Something went wrong',
+        content: content ?? "Something went wrong",
         flags: MessageFlags.Ephemeral,
       });
       return;
@@ -616,18 +645,18 @@ client.on(Events.InteractionCreate, async interaction => {
       }
     }
 
-    const target = interaction.options.get('player')?.value as string;
+    const target = interaction.options.get("player")?.value as string;
 
     if (!target) {
       await interaction.editReply({
-        content: 'You must select a player',
+        content: "You must select a player",
       });
       return;
     }
 
     if (target === interaction.user.id) {
       await interaction.editReply({
-        content: 'You must select a player other than yourself',
+        content: "You must select a player other than yourself",
       });
       return;
     }
@@ -636,7 +665,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
     if (!targetPlayer) {
       await interaction.editReply({
-        content: 'That player is not trick or treating!',
+        content: "That player is not trick or treating!",
       });
       return;
     }
@@ -649,7 +678,7 @@ client.on(Events.InteractionCreate, async interaction => {
     } = await eatCandy(currentPlayer, targetPlayer);
 
     eventEmbed.setColor(ColorEnums.undead);
-    eventEmbed.setTitle('You ███');
+    eventEmbed.setTitle("You ███");
 
     if (!success || !actualTarget) {
       const failEmbed = failedToEat();
@@ -700,23 +729,23 @@ client.on(Events.InteractionCreate, async interaction => {
     return;
   }
 
-  if (interaction.commandName === 'help') {
-    let msg = '';
+  if (interaction.commandName === "help") {
+    let msg = "";
     commandList.forEach(({ cmd, aliases, description }) => {
       msg += `**${cmd}**: ${description}`;
 
       if (aliases?.length) {
-        const cmds = aliases.map(c => `\`${c}\``);
-        msg += `\n**aliases**: [${cmds.join(', ')}]`;
+        const cmds = aliases.map((c) => `\`${c}\``);
+        msg += `\n**aliases**: [${cmds.join(", ")}]`;
       }
 
-      msg += '\n\n';
+      msg += "\n\n";
     });
     await interaction.reply({
       flags: MessageFlags.Ephemeral,
       embeds: [
         createEmbed({
-          title: 'Help',
+          title: "Help",
           description: msg,
           color: ColorEnums.base,
         }),
@@ -726,13 +755,13 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   // Admin commands
-  if (interaction.commandName === 'story-create') {
-    const category = interaction.options.get('category')?.value;
-    const content = interaction.options.get('content')?.value;
+  if (interaction.commandName === "story-create") {
+    const category = interaction.options.get("category")?.value;
+    const content = interaction.options.get("content")?.value;
     if (!category || !content) {
       await interaction.reply({
         flags: MessageFlags.Ephemeral,
-        content: 'Category or content missing for the story',
+        content: "Category or content missing for the story",
       });
       return;
     }
@@ -741,23 +770,18 @@ client.on(Events.InteractionCreate, async interaction => {
       flags: MessageFlags.Ephemeral,
     });
 
-    const newStory = await StoryTeller.addStory(
-      category as StoryCategory,
-      content as string,
-    );
+    const newStory = await StoryTeller.addStory(category as StoryCategory, content as string);
 
     if (!newStory) {
-      eventEmbed.setTitle('Could not add story');
-      eventEmbed.setDescription('Check the logs');
+      eventEmbed.setTitle("Could not add story");
+      eventEmbed.setDescription("Check the logs");
       await interaction.editReply({
         embeds: [eventEmbed],
       });
       return;
     } else {
-      eventEmbed.setTitle('Story added');
-      eventEmbed.setDescription(
-        `Category: ${category}\nStory: ${newStory.content}`,
-      );
+      eventEmbed.setTitle("Story added");
+      eventEmbed.setDescription(`Category: ${category}\nStory: ${newStory.content}`);
       eventEmbed.setFooter({
         text: `ID: ${newStory.id}`,
       });
@@ -768,13 +792,13 @@ client.on(Events.InteractionCreate, async interaction => {
     }
   }
 
-  if (interaction.commandName === 'story-delete') {
-    const id = interaction.options.get('id')?.value;
+  if (interaction.commandName === "story-delete") {
+    const id = interaction.options.get("id")?.value;
 
     if (!id) {
       await interaction.reply({
         flags: MessageFlags.Ephemeral,
-        content: 'You must provide the id',
+        content: "You must provide the id",
       });
     }
 
@@ -785,14 +809,14 @@ client.on(Events.InteractionCreate, async interaction => {
     const storyDeleted = await StoryTeller.deleteStory(id as string);
 
     if (!storyDeleted) {
-      eventEmbed.setTitle('Something went wrong');
-      eventEmbed.setDescription('Check the logs');
+      eventEmbed.setTitle("Something went wrong");
+      eventEmbed.setDescription("Check the logs");
       await interaction.editReply({
         embeds: [eventEmbed],
       });
       return;
     } else {
-      eventEmbed.setTitle('Story Deleted');
+      eventEmbed.setTitle("Story Deleted");
       eventEmbed.setDescription(
         `Category: ${storyDeleted.category.name}\nStory: ${storyDeleted.content}`,
       );
@@ -803,18 +827,18 @@ client.on(Events.InteractionCreate, async interaction => {
     }
   }
 
-  if (interaction.commandName === 'reset-all') {
+  if (interaction.commandName === "reset-all") {
     await interaction.deferReply({
       flags: MessageFlags.Ephemeral,
     });
 
     const gameReset = await resetAll();
 
-    let answer = '';
+    let answer = "";
     if (gameReset) {
-      answer = 'Successfully reset trick or treaters';
+      answer = "Successfully reset trick or treaters";
     } else {
-      answer = 'Could not reset trick or treaters, check logs';
+      answer = "Could not reset trick or treaters, check logs";
     }
 
     await interaction.editReply({
@@ -824,20 +848,20 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   // Sending
-  if (interaction.commandName === 'send') {
+  if (interaction.commandName === "send") {
     // Don't allow anyone but the server owner to do this
     if (interaction.user.id !== interaction.guild?.ownerId) return;
-    const chan = interaction.options.getChannel('channel', true, [
+    const chan = interaction.options.getChannel("channel", true, [
       ChannelType.GuildText,
       ChannelType.GuildDirectory,
       // Maybe extend this into threads etc at some point
     ]);
-    const msg = interaction.options.getString('message');
+    const msg = interaction.options.getString("message");
 
     if (!chan || !msg) {
       await interaction.reply({
         flags: MessageFlags.Ephemeral,
-        content: 'You must provide both channel and a message',
+        content: "You must provide both channel and a message",
       });
 
       return;
@@ -846,7 +870,7 @@ client.on(Events.InteractionCreate, async interaction => {
     if (!chan) {
       await interaction.reply({
         flags: MessageFlags.Ephemeral,
-        content: 'You can only send messages to text or news channels',
+        content: "You can only send messages to text or news channels",
       });
 
       return;
@@ -859,21 +883,21 @@ client.on(Events.InteractionCreate, async interaction => {
     try {
       await chan.send({ content: msg });
       await interaction.editReply({
-        content: 'Message successfully sent',
+        content: "Message successfully sent",
       });
     } catch (e) {
       const err = e as Error;
       console.error(e);
       await interaction.editReply({
-        content: err.message ?? 'Something went wrong',
+        content: err.message ?? "Something went wrong",
       });
     }
 
     return;
   }
 
-  if (interaction.commandName === 'start-message') {
-    const chan = interaction.options.getChannel('channel', true, [
+  if (interaction.commandName === "start-message") {
+    const chan = interaction.options.getChannel("channel", true, [
       ChannelType.GuildText,
       ChannelType.GuildAnnouncement,
       // Maybe extend this into threads etc at some point
@@ -882,7 +906,7 @@ client.on(Events.InteractionCreate, async interaction => {
     if (!chan) {
       await interaction.reply({
         flags: MessageFlags.Ephemeral,
-        content: 'You must provide a valid channel',
+        content: "You must provide a valid channel",
       });
       return;
     }
@@ -895,7 +919,7 @@ client.on(Events.InteractionCreate, async interaction => {
       await chan.send({
         embeds: [
           createEmbed({
-            title: 'Trick or Treat',
+            title: "Trick or Treat",
             description: StartMessage,
             color: ColorEnums.dead,
             thumbnail: client.user?.displayAvatarURL(),
@@ -903,13 +927,13 @@ client.on(Events.InteractionCreate, async interaction => {
         ],
       });
       await interaction.editReply({
-        content: 'Message successfully sent',
+        content: "Message successfully sent",
       });
     } catch (e) {
       const err = e as Error;
       console.error(e);
       await interaction.editReply({
-        content: err.message ?? 'Something went wrong',
+        content: err.message ?? "Something went wrong",
       });
     }
     return;

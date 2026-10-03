@@ -1,7 +1,6 @@
-import {Column, DataType, Model, PrimaryKey, Table} from 'sequelize-typescript';
-
+import { Column, DataType, Model, PrimaryKey, Table } from "sequelize-typescript";
 @Table({
-  tableName: 'players',
+  tableName: "players",
   timestamps: false,
 })
 export default class Player extends Model<Player, Partial<Player>> {
@@ -29,7 +28,7 @@ export default class Player extends Model<Player, Partial<Player>> {
   @Column({
     type: DataType.DATE,
     allowNull: true,
-    field: 'status_set',
+    field: "status_set",
   })
   declare statusSet: Date;
 

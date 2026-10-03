@@ -1,9 +1,9 @@
-import Config from '../models/Config';
+import Config from "../models/Config";
 
 export async function getConfig(): Promise<Config> {
   const config = await Config.findOne();
   if (!config) {
-    throw new Error('No config');
+    throw new Error("No config");
   }
   return config;
 }

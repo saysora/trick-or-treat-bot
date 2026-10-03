@@ -20,4 +20,5 @@ export const db = new Sequelize({
   port: Number(process.env.DBPORT ?? 5432),
   dialect: 'postgres',
   models: [modelPaths],
+  logging: false,
 });

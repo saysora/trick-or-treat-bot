@@ -1,11 +1,13 @@
-import moment = require('moment');
-import Player from '../models/Player';
-import TheDark from '../models/TheDark';
-import Config from '../models/Config';
-import {getRandomStatus} from './statuses';
-import {Op, Sequelize, WhereOptions} from 'sequelize';
-import {randomChance} from './chance';
-import TimelineEvent from '../models/TimelineEvent';
+import moment = require("moment");
+import Player from "../models/Player";
+import TheDark from "../models/TheDark";
+import Config from "../models/Config";
+import { getRandomStatus } from "./statuses";
+import { Op, Sequelize, WhereOptions } from "sequelize";
+import { randomChance } from "./chance";
+import TimelineEvent from "../models/TimelineEvent";
+import { getConfig } from "../classes/ConfigManager";
+import { isGameActive } from "./configcheck";
 
 // Helpers
 export function canTot(player: Player, config: Config) {
@@ -29,20 +31,14 @@ export function canTot(player: Player, config: Config) {
 
 export function timeToTot(player: Player, config: Config) {
   return moment(player.latestAttempt)
-    .add(
-      config.cooldownTime,
-      config.cooldownUnit as moment.unitOfTime.DurationConstructor,
-    )
+    .add(config.cooldownTime, config.cooldownUnit as moment.unitOfTime.DurationConstructor)
     .fromNow(true);
 }
 
 export function calcedWatchTime(player: Player, config: Config) {
   return moment(player.gatherAttempts > 0 ? player.latestAttempt : new Date())
-    .add(
-      config.cooldownTime,
-      config.cooldownUnit as moment.unitOfTime.DurationConstructor,
-    )
-    .diff(moment(), 'milliseconds', true);
+    .add(config.cooldownTime, config.cooldownUnit as moment.unitOfTime.DurationConstructor)
+    .diff(moment(), "milliseconds", true);
 }
 
 // Player Commands
@@ -74,18 +70,58 @@ export async function getPlayer(id: string) {
   return player;
 }
 
+export async function getPlayersByExpStatus(mins: number): Promise<Player[]> {
+  const nowMinusMins = new Date(new Date().getTime() - mins * 60 * 1000);
+
+  const players = await Player.findAll({
+    where: {
+      statusSet: {
+        [Op.lt]: nowMinusMins,
+      },
+    },
+  });
+
+  return players;
+}
+
+export async function updatePlayersExpStatuses() {
+  const latestConfig = await getConfig();
+  const { active } = isGameActive(latestConfig, process.env.GAME_CHANNEL_ID!);
+  // If the game is done, don't bother
+  if (!active) {
+    return [];
+  }
+
+  // 1. Find all players where their last status was set over 15 minutes ago
+  let updatedStatuses = 0;
+  const players = await getPlayersByExpStatus(latestConfig.cooldownTime);
+
+  // 2. Get a random status for each player
+  for (const player of players) {
+    player.status = getRandomStatus();
+    player.statusSet = new Date();
+
+    // 3. Update the playeres statuses and reset the statusSet date to now
+    await player.save();
+    updatedStatuses += 1;
+  }
+
+  console.log(`Updated ${updatedStatuses} statuses`);
+  return players.map(({ id }) => id);
+}
+
 export async function getRandomOtherPlayer(id: string | string[] | null) {
-  let where: WhereOptions = {isDead: false};
+  let where: WhereOptions = { isDead: false };
 
   if (Array.isArray(id) && id !== null) {
-    where = {...where, id: {[Op.notIn]: id}};
+    where = { ...where, id: { [Op.notIn]: id } };
   } else {
-    where = {...where, id: {[Op.ne]: id}};
+    where = { ...where, id: { [Op.ne]: id } };
   }
 
   const otherPlayer = await Player.findOne({
     where,
-    order: Sequelize.literal('random()'),
+    order: Sequelize.literal("random()"),
   });
 
   return otherPlayer;
@@ -157,9 +193,9 @@ enum TargetChance {
 }
 
 enum TargetResult {
-  success = 'success',
-  messUp = 'messUp',
-  fail = 'fail',
+  success = "success",
+  messUp = "messUp",
+  fail = "fail",
 }
 function canEatCheck() {
   const chance = randomChance(0, 100);
@@ -243,8 +279,8 @@ export async function resetAll(): Promise<boolean> {
       },
     );
 
-    await Player.destroy({where: {}});
-    await TimelineEvent.destroy({where: {}});
+    await Player.destroy({ where: {} });
+    await TimelineEvent.destroy({ where: {} });
 
     return true;
   } catch (e) {
