@@ -71,8 +71,9 @@ export async function getPlayer(id: string) {
 }
 
 export async function getPlayersByExpStatus(mins: number): Promise<Player[]> {
-  // Cut in half so they can get possibly two status changes per cooldown time
-  const nowMinusMins = new Date(new Date().getTime() - (mins / 2) * 60 * 1000);
+  // Should be whatever the cooldown time is + an extra 5 minutes
+  // to make them wait
+  const nowMinusMins = new Date(new Date().getTime() - (mins + 5) * 60 * 1000);
 
   const players = await Player.findAll({
     where: {
