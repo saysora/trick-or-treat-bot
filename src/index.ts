@@ -38,7 +38,6 @@ import {
   playerLoseAllCandy,
   resetAll,
   updatePlayerCandy,
-  updatePlayersExpStatuses,
 } from "./helpers/player-helper";
 import {
   alreadyPlaying,
@@ -60,7 +59,7 @@ import { randomChance } from "./helpers/chance";
 import { storyByCategory, storyCategory } from "./helpers/story";
 import {
   determineStatusType,
-  getRandomStatus,
+  getFairRandomStatus,
   NEGATIVE_STATUS,
   POSITIVE_STATUS,
 } from "./helpers/statuses";
@@ -423,7 +422,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       await setFocus();
     }
 
-    currentPlayer.status = getRandomStatus();
+    currentPlayer.status = getFairRandomStatus();
     // Update the time of the last status
     currentPlayer.statusSet = new Date();
 
@@ -530,7 +529,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     currentPlayer.candy = currentPlayer.candy - REFRESH_CANDY_COST;
     currentPlayer.lostCandyCount += REFRESH_CANDY_COST;
-    currentPlayer.status = getRandomStatus();
+    currentPlayer.status = getFairRandomStatus();
     currentPlayer.statusSet = new Date();
     await currentPlayer.save();
 
